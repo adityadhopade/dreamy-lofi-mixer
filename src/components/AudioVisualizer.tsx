@@ -10,7 +10,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ isPlaying }) => {
   const minHeight = 3;
   const maxHeight = 30;
   
-  const [heights, setHeights] = useState<number[]>([]);
+  const [heights, setHeights] = useState<number[]>(Array(bars).fill(minHeight));
 
   // Generate random heights for visualization
   useEffect(() => {
