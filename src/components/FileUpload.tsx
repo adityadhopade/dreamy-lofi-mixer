@@ -4,7 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import { Cloud, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface FileUploadProps {
   onFileSelected: (file: File) => void;

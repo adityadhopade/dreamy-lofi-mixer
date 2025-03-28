@@ -3,7 +3,7 @@ import FileUpload from '@/components/FileUpload';
 import AudioPlayer from '@/components/AudioPlayer';
 import EffectsPanel, { EffectsSettings } from '@/components/EffectsPanel';
 import { ambientSounds, demoTracks } from '@/assets/sounds';
-import { HeadphonesIcon, Waveform, Disc, BrainCircuit } from 'lucide-react';
+import { HeadphonesIcon, AudioWaveform, Disc, BrainCircuit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -16,7 +16,6 @@ const Index = () => {
 
   const handleFileSelected = (file: File) => {
     setUploadedFile(file);
-    // Create URL for the original file for preview
     const url = URL.createObjectURL(file);
     setAudioUrl(url);
     setIsProcessed(false);
@@ -30,15 +29,10 @@ const Index = () => {
   const handleApplyEffects = (effects: EffectsSettings, ambientType: string) => {
     setIsProcessing(true);
     
-    // Simulate processing with a timeout
     setTimeout(() => {
       console.log("Applying effects:", effects);
       console.log("Selected ambient sound:", ambientType);
       
-      // For demo purposes, we'll reuse the same audio but pretend it's processed
-      // In a real implementation, we would send this to a backend for processing
-      
-      // Set the ambient sound based on selection
       setAmbientSoundUrl(ambientSounds[ambientType as keyof typeof ambientSounds]);
       
       setIsProcessing(false);
@@ -53,7 +47,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-lofi-black to-lofi-black/95 text-foreground flex flex-col">
-      {/* Header */}
       <header className="container mx-auto py-6">
         <div className="flex items-center justify-center">
           <div className="bg-gradient-to-r from-lofi-gradient1 to-lofi-gradient2 p-0.5 rounded-full">
@@ -66,14 +59,12 @@ const Index = () => {
           </h1>
         </div>
         <p className="text-center text-muted-foreground mt-2 max-w-md mx-auto">
-          Transform your music into chill, lo-fi vibes with our AI-powered audio processor
+          Transform your music into chill, lofi vibes with our AI-powered audio processor
         </p>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto flex-1 px-4 py-6 max-w-5xl">
         <div className="grid gap-8 lg:grid-cols-2">
-          {/* Left Column: Upload and Audio Player */}
           <div className="space-y-6">
             <Card className="border-0 bg-lofi-card shadow-lg hover:shadow-xl transition-all duration-300">
               <CardContent className="p-6">
@@ -83,7 +74,6 @@ const Index = () => {
                 </h2>
                 <FileUpload 
                   onFileSelected={handleFileSelected} 
-                  isProcessed={isProcessed}
                 />
               </CardContent>
             </Card>
@@ -92,7 +82,7 @@ const Index = () => {
               {(audioUrl && isProcessed) ? (
                 <>
                   <h3 className="text-sm font-medium text-lofi-purple flex items-center">
-                    <Waveform className="w-4 h-4 mr-1 animate-pulse-slow" /> 
+                    <AudioWaveform className="w-4 h-4 mr-1 animate-pulse-slow" /> 
                     Lofi Version
                   </h3>
                   <div className="transform transition-all duration-300 hover:scale-[1.01]">
@@ -114,7 +104,6 @@ const Index = () => {
             </div>
           </div>
           
-          {/* Right Column: Effects and Processing */}
           <div>
             <Card className="border-0 bg-lofi-card shadow-lg overflow-hidden">
               <CardContent className="p-6">
@@ -130,7 +119,6 @@ const Index = () => {
               </CardContent>
             </Card>
             
-            {/* Info Section */}
             <div className="mt-6 bg-lofi-card rounded-xl p-6 border border-lofi-purple/20 shadow-lg">
               <h3 className="font-medium mb-3 text-lofi-purple">How It Works</h3>
               <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2">
@@ -144,7 +132,6 @@ const Index = () => {
           </div>
         </div>
         
-        {/* Quick Demo Section */}
         {!uploadedFile && (
           <div className="mt-8 text-center">
             <h3 className="text-muted-foreground mb-2">Don't have a track to upload?</h3>
@@ -164,7 +151,6 @@ const Index = () => {
         )}
       </main>
 
-      {/* Footer */}
       <footer className="container mx-auto p-4 text-center text-xs text-muted-foreground">
         <p className="bg-gradient-to-r from-lofi-purple/70 to-lofi-blue/70 bg-clip-text text-transparent">
           Dreamy Lofi Creator · Turn any track into a chill lofi experience
