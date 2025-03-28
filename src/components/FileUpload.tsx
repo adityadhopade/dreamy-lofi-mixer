@@ -1,20 +1,31 @@
 
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Cloud, Music } from 'lucide-react';
+import { Cloud, Music, FileAudio, FileVideo } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 
 interface FileUploadProps {
   onFileSelected: (file: File) => void;
+  isProcessed: boolean;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected }) => {
+const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected, isProcessed }) => {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
   
   const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (isProcessed) {
+      toast({
+        title: "Reset required",
+        description: "Please reset the current session before uploading a new file.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     const file = acceptedFiles[0];
     
     if (!file) return;
@@ -29,6 +40,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected }) => {
       });
       return;
     }
+    
+    // Save the selected file
+    setSelectedFile(file);
     
     // Simulate upload progress
     setUploadProgress(0);
@@ -48,9 +62,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected }) => {
         }
         return prev + 5;
       });
-    }, 50);
+    }, 30);
     
-  }, [onFileSelected, toast]);
+  }, [onFileSelected, toast, isProcessed]);
   
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
@@ -58,37 +72,66 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected }) => {
       'audio/*': ['.mp3', '.wav', '.ogg'],
       'video/mp4': ['.mp4']
     },
-    maxFiles: 1
+    maxFiles: 1,
+    disabled: isProcessed
   });
+
+  const getFileIcon = () => {
+    if (!selectedFile) return null;
+    
+    if (selectedFile.type.includes('audio')) {
+      return <FileAudio className="h-5 w-5 mr-2 text-lofi-purple" />;
+    } else if (selectedFile.type.includes('video')) {
+      return <FileVideo className="h-5 w-5 mr-2 text-lofi-blue" />;
+    }
+    return null;
+  };
 
   return (
     <div 
       {...getRootProps()} 
-      className={`dropzone w-full h-48 rounded-xl flex flex-col items-center justify-center transition-colors cursor-pointer p-4
-        ${isDragActive ? 'active' : ''}
-        ${isDragReject ? 'border-destructive bg-destructive/10' : 'hover:border-primary/50 hover:bg-primary/5'}`}
+      className={`dropzone w-full h-48 rounded-xl flex flex-col items-center justify-center transition-all p-4
+        ${isDragActive ? 'active border-dashed border-2 border-lofi-purple bg-lofi-purple/10' : ''}
+        ${isDragReject ? 'border-destructive bg-destructive/10' : 'hover:border-lofi-purple/50 hover:bg-primary/5'}
+        ${isProcessed ? 'opacity-50 cursor-not-allowed' : ''}
+        `}
     >
       <input {...getInputProps()} />
       
       {uploadProgress !== null ? (
         <div className="w-full max-w-xs">
           <p className="text-center mb-2 text-sm">Uploading...</p>
-          <Progress value={uploadProgress} className="h-2" />
+          <Progress value={uploadProgress} className="h-2 bg-lofi-card" />
+        </div>
+      ) : selectedFile && !isProcessed ? (
+        <div className="text-center">
+          <div className="mb-3 bg-lofi-card/80 p-3 rounded-full inline-flex">
+            {getFileIcon()}
+          </div>
+          <p className="font-medium mb-1 text-lofi-purple">{selectedFile.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB · Ready to transform
+          </p>
         </div>
       ) : (
         <>
-          <div className="mb-4 bg-secondary/80 p-3 rounded-full">
+          <div className="mb-4 bg-gradient-to-br from-lofi-purple/30 to-lofi-blue/30 p-4 rounded-full">
             {isDragActive ? (
-              <Cloud className="h-6 w-6 text-primary animate-pulse" />
+              <Cloud className="h-8 w-8 text-lofi-purple animate-pulse" />
             ) : (
-              <Music className="h-6 w-6 text-muted-foreground" />
+              <Music className="h-8 w-8 text-lofi-purple/70" />
             )}
           </div>
-          <p className="text-center mb-1 font-medium">
+          <p className="text-center mb-1 font-medium text-lofi-purple font-bangers tracking-wider text-lg">
             {isDragActive ? 'Drop to upload' : 'Drag and drop your audio'}
           </p>
           <p className="text-xs text-muted-foreground mb-3">MP3, WAV, OGG or MP4 video</p>
-          <Button variant="outline" size="sm" className="text-xs">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-xs bg-lofi-card border-lofi-purple/30 hover:bg-lofi-hover"
+            disabled={isProcessed}
+          >
             Browse files
           </Button>
         </>
