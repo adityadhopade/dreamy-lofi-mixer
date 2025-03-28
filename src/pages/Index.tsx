@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import FileUpload from '@/components/FileUpload';
 import AudioPlayer from '@/components/AudioPlayer';
@@ -73,7 +74,8 @@ const Index = () => {
                   Upload Your Track
                 </h2>
                 <FileUpload 
-                  onFileSelected={handleFileSelected} 
+                  onFileSelected={handleFileSelected}
+                  isProcessed={isProcessed}
                 />
               </CardContent>
             </Card>
