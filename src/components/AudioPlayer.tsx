@@ -28,7 +28,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [ambientVolume, setAmbientVolume] = useState(0.3);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ambientRef = useRef<HTMLAudioElement | null>(null);
-  const animationRef = useRef<number | null>(null);
+  const progressAnimationRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!audioUrl) return;
@@ -95,8 +95,13 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     if (audioProcessor && isProcessed) {
       if (isPlaying) {
         audioProcessor.pause();
+        if (progressAnimationRef.current) {
+          cancelAnimationFrame(progressAnimationRef.current);
+          progressAnimationRef.current = null;
+        }
       } else {
         audioProcessor.play(currentTime);
+        updateProgressForProcessor();
       }
       setIsPlaying(!isPlaying);
       return;
@@ -120,43 +125,56 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     setIsPlaying(!isPlaying);
   };
 
-  // Update audioProcessor time if we're using it
-  useEffect(() => {
+  // Update progress continuously when using audioProcessor
+  const updateProgressForProcessor = () => {
     if (!isPlaying || !audioProcessor) return;
     
     const updateTime = () => {
-      const newTime = audioProcessor.getCurrentTime?.() || 0;
-      setCurrentTime(prevTime => {
-        // If we're using AudioProcessor, increment time manually based on elapsed time
-        return prevTime + 0.05; // Update approximately every 50ms
-      });
+      // Get time from processor if available, otherwise increment manually
+      const newTime = audioProcessor.getCurrentTime ? audioProcessor.getCurrentTime() : currentTime + 0.05;
+      setCurrentTime(newTime);
       
-      // Stop if we reach the end
-      if (currentTime >= duration) {
+      // Check if we've reached the end of the audio
+      if (newTime >= duration) {
         setIsPlaying(false);
         setCurrentTime(0);
         audioProcessor.pause();
+        if (progressAnimationRef.current) {
+          cancelAnimationFrame(progressAnimationRef.current);
+          progressAnimationRef.current = null;
+        }
         return;
       }
       
-      animationRef.current = requestAnimationFrame(updateTime);
+      progressAnimationRef.current = requestAnimationFrame(updateTime);
     };
     
-    animationRef.current = requestAnimationFrame(updateTime);
+    progressAnimationRef.current = requestAnimationFrame(updateTime);
+  };
+
+  // Start/stop progress tracking when playing state changes
+  useEffect(() => {
+    if (isPlaying && audioProcessor && isProcessed) {
+      updateProgressForProcessor();
+    } else if (!isPlaying && progressAnimationRef.current) {
+      cancelAnimationFrame(progressAnimationRef.current);
+      progressAnimationRef.current = null;
+    }
     
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-        animationRef.current = null;
+      if (progressAnimationRef.current) {
+        cancelAnimationFrame(progressAnimationRef.current);
+        progressAnimationRef.current = null;
       }
     };
-  }, [isPlaying, audioProcessor, duration]);
+  }, [isPlaying, audioProcessor, isProcessed]);
 
   const handleTimeChange = (value: number[]) => {
     const newTime = value[0];
     setCurrentTime(newTime);
     
     if (audioProcessor && isProcessed) {
+      audioProcessor.seekTo?.(newTime);
       if (isPlaying) {
         audioProcessor.pause();
         audioProcessor.play(newTime);
@@ -171,7 +189,9 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     setVolume(newVolume);
     
     if (audioProcessor && isProcessed) {
-      audioProcessor.setVolume(newVolume);
+      audioProcessor.setVolume?.(newVolume);
+    } else if (audioRef.current) {
+      audioRef.current.volume = newVolume;
     }
   };
 
@@ -179,8 +199,10 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const newVolume = value[0];
     setAmbientVolume(newVolume);
     
-    if (audioProcessor && isProcessed) {
+    if (audioProcessor && isProcessed && audioProcessor.setAmbientVolume) {
       audioProcessor.setAmbientVolume(newVolume);
+    } else if (ambientRef.current) {
+      ambientRef.current.volume = newVolume;
     }
   };
 

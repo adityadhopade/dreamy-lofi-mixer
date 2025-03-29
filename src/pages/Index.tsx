@@ -1,10 +1,9 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import FileUpload from '@/components/FileUpload';
 import AudioPlayer from '@/components/AudioPlayer';
 import EffectsPanel, { EffectsSettings } from '@/components/EffectsPanel';
 import { ambientSounds } from '@/assets/sounds';
-import { HeadphonesIcon, AudioWaveform, Disc, BrainCircuit, Download, Music, Heart, RefreshCw } from 'lucide-react';
+import { HeadphonesIcon, AudioWaveform, Disc, BrainCircuit, Download, Music, Heart } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,6 @@ const Index = () => {
   const [currentEffects, setCurrentEffects] = useState<EffectsSettings | null>(null);
   const audioProcessorRef = useRef<AudioProcessor | null>(null);
 
-  // Show upload limitation toast on component mount
   useEffect(() => {
     toast({
       title: "One Upload at a Time",
@@ -36,11 +34,9 @@ const Index = () => {
     setAudioUrl(url);
     setIsProcessed(false);
     
-    // Initialize the audio processor
     const audioProcessor = new AudioProcessor();
     audioProcessorRef.current = audioProcessor;
     
-    // Load the audio file
     audioProcessor.loadAudioFile(file).catch(err => {
       console.error("Error loading audio file:", err);
       toast({
@@ -71,10 +67,8 @@ const Index = () => {
     }
     
     try {
-      // Apply the effects
       audioProcessorRef.current.setEffectsSettings(effects);
       
-      // Load ambient sound (if not 'none')
       let ambientUrl = null;
       if (ambientType !== 'none') {
         ambientUrl = ambientSounds[ambientType as keyof typeof ambientSounds];
@@ -84,7 +78,6 @@ const Index = () => {
       }
       setAmbientSoundUrl(ambientUrl);
       
-      // Process for a short time to give feedback to user
       setTimeout(() => {
         setIsProcessing(false);
         setIsProcessed(true);
@@ -128,21 +121,17 @@ const Index = () => {
         throw new Error("Failed to create audio blob");
       }
       
-      // Create a download link
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
       
-      // Generate a nice filename
-      const originalName = uploadedFile.name.replace(/\.[^/.]+$/, ""); // Remove extension
+      const originalName = uploadedFile.name.replace(/\.[^/.]+$/, "");
       a.download = `${originalName}_lofi.wav`;
       
-      // Trigger download
       document.body.appendChild(a);
       a.click();
       
-      // Clean up
       setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
@@ -163,12 +152,10 @@ const Index = () => {
   };
 
   const handleReset = () => {
-    // Clean up resources
     if (audioProcessorRef.current) {
       audioProcessorRef.current = null;
     }
     
-    // Reset state
     setUploadedFile(null);
     setAudioUrl(null);
     setIsProcessed(false);
@@ -203,9 +190,8 @@ const Index = () => {
       <main className="container mx-auto flex-1 px-4 py-8 max-w-5xl">
         <Alert className="mb-8 bg-lofi-card/80 border-lofi-purple/30">
           <InfoIcon className="h-5 w-5 text-lofi-purple" />
-          <AlertTitle className="text-xl font-bangers tracking-wide text-lofi-purple">One Upload at a Time</AlertTitle>
-          <AlertDescription className="text-lg">
-            Currently, only one audio file can be processed at a time. To upload a new track, please use the reset button or refresh the page.
+          <AlertDescription className="text-xl">
+            Currently, only one audio file can be processed at a time. To upload a new track, please refresh the page.
           </AlertDescription>
         </Alert>
         
@@ -218,18 +204,6 @@ const Index = () => {
                     <Disc className="w-8 h-8 mr-3 animate-spin" style={{ animationDuration: '8s' }} />
                     Upload Your Track
                   </h2>
-                  
-                  {isProcessed && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleReset}
-                      className="flex items-center gap-2 font-bangers tracking-wide text-lg"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                      Reset
-                    </Button>
-                  )}
                 </div>
                 <FileUpload 
                   onFileSelected={handleFileSelected}
@@ -253,16 +227,6 @@ const Index = () => {
                       <AudioWaveform className="w-6 h-6 mr-2 animate-pulse-slow" /> 
                       Lofi Version
                     </h3>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleDownload}
-                      className="bg-lofi-purple/20 hover:bg-lofi-purple/30 text-lofi-purple border-lofi-purple/30 font-bangers tracking-wide text-lg"
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      Download
-                    </Button>
                   </div>
                   <div className="transform transition-all duration-300 hover:scale-[1.01] min-h-[340px]">
                     <AudioPlayer 

@@ -71,7 +71,7 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({ onApplyEffects, isProcessin
             <span className="text-xl text-muted-foreground font-bangers">{effects.slowdown}%</span>
           </div>
           <div className="relative pt-2">
-            <div className="absolute -top-2 left-0 w-full flex justify-between text-xs text-muted-foreground">
+            <div className="absolute -top-2 left-0 w-full flex justify-between text-sm text-muted-foreground">
               <span>Slower</span>
               <span>Original</span>
             </div>
@@ -85,7 +85,7 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({ onApplyEffects, isProcessin
               className="h-3"
             />
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-lg text-muted-foreground mt-2">
             Slows down the track for that classic lofi vibe. Lower values create a more dreamlike sound.
           </p>
         </div>
@@ -96,7 +96,7 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({ onApplyEffects, isProcessin
             <span className="text-xl text-muted-foreground font-bangers">{effects.reverb}%</span>
           </div>
           <div className="relative pt-2">
-            <div className="absolute -top-2 left-0 w-full flex justify-between text-xs text-muted-foreground">
+            <div className="absolute -top-2 left-0 w-full flex justify-between text-sm text-muted-foreground">
               <span>Dry</span>
               <span>Wet</span>
             </div>
@@ -110,7 +110,7 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({ onApplyEffects, isProcessin
               className="h-3"
             />
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-lg text-muted-foreground mt-2">
             Adds spaciousness and atmosphere to the track. Higher values create a more distant, dreamy sound.
           </p>
         </div>
@@ -121,7 +121,7 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({ onApplyEffects, isProcessin
             <span className="text-xl text-muted-foreground font-bangers">{effects.lowpass}%</span>
           </div>
           <div className="relative pt-2">
-            <div className="absolute -top-2 left-0 w-full flex justify-between text-xs text-muted-foreground">
+            <div className="absolute -top-2 left-0 w-full flex justify-between text-sm text-muted-foreground">
               <span>Clear</span>
               <span>Muffled</span>
             </div>
@@ -135,7 +135,7 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({ onApplyEffects, isProcessin
               className="h-3"
             />
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-lg text-muted-foreground mt-2">
             Removes high frequencies for the warm, cozy lofi sound. Higher values create a more "underwater" effect.
           </p>
         </div>

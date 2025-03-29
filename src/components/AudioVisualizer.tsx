@@ -49,6 +49,30 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ isPlaying, audioProce
       const visualData = audioProcessor.getAnalyserData?.();
       
       if (!visualData) {
+        // If no analyzer data, create random visualization 
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw simple bars with random heights
+        const barWidth = canvas.width / bars;
+        const barSpacing = 2;
+        const effectiveBarWidth = barWidth - barSpacing;
+        
+        for (let i = 0; i < bars; i++) {
+          const barHeight = (Math.random() * 0.5 + 0.2) * canvas.height;
+          
+          const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
+          gradient.addColorStop(0, 'rgba(167, 139, 250, 0.8)'); // lofi-purple
+          gradient.addColorStop(1, 'rgba(96, 165, 250, 0.5)');  // lofi-blue
+          
+          ctx.fillStyle = gradient;
+          ctx.fillRect(
+            i * barWidth, 
+            canvas.height - barHeight, 
+            effectiveBarWidth, 
+            barHeight
+          );
+        }
+        
         animationRef.current = requestAnimationFrame(renderFrame);
         return;
       }
@@ -92,18 +116,19 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ isPlaying, audioProce
         animationRef.current = null;
       }
     };
-  }, [isPlaying, audioProcessor]);
+  }, [isPlaying, audioProcessor, bars]);
 
   // Fallback to div-based visualization when we don't have audio processor
   if (!audioProcessor) {
     return (
-      <div className="audio-visualizer">
+      <div className="audio-visualizer flex justify-between items-end h-16 w-full">
         {heights.map((height, index) => (
           <div
             key={index}
-            className={`audio-bar ${isPlaying ? 'animate-pulse-slow' : ''}`}
+            className={`audio-bar ${isPlaying ? 'animate-pulse-slow' : ''} bg-lofi-purple/70 rounded-t-sm`}
             style={{ 
               height: `${height}px`,
+              width: `${100 / bars - 1}%`,
               animationDelay: `${index * 0.05}s` 
             }}
           />
