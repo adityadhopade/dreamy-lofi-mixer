@@ -59,6 +59,11 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
     ambient.loop = true;
     ambient.volume = ambientVolume;
     
+    // If we're already playing, start the ambient sound
+    if (isPlaying) {
+      ambient.play().catch(err => console.error("Error playing ambient:", err));
+    }
+    
     return () => {
       ambient.pause();
       ambient.src = '';
@@ -83,10 +88,17 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
       audioRef.current.pause();
       ambientRef.current?.pause();
     } else {
-      audioRef.current.play().catch(err => console.error("Error playing audio:", err));
-      
-      if (ambientRef.current && isProcessed) {
-        ambientRef.current.play().catch(err => console.error("Error playing ambient:", err));
+      // Apply lofi effects on play if processed
+      if (isProcessed) {
+        // The actual audio processing happens elsewhere, here we just need to play
+        audioRef.current.play().catch(err => console.error("Error playing audio:", err));
+        
+        if (ambientRef.current) {
+          ambientRef.current.play().catch(err => console.error("Error playing ambient:", err));
+        }
+      } else {
+        // Play original audio
+        audioRef.current.play().catch(err => console.error("Error playing audio:", err));
       }
     }
     
@@ -107,39 +119,39 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
   };
   
   const VolumeIcon = () => {
-    if (volume === 0) return <VolumeX size={18} />;
-    if (volume < 0.5) return <Volume1 size={18} />;
-    return <Volume2 size={18} />;
+    if (volume === 0) return <VolumeX size={20} />;
+    if (volume < 0.5) return <Volume1 size={20} />;
+    return <Volume2 size={20} />;
   };
 
   if (!audioUrl) {
     return (
       <div className="w-full h-24 bg-secondary/50 rounded-xl flex items-center justify-center">
-        <p className="text-muted-foreground text-base font-bangers tracking-wide">Upload a track to begin</p>
+        <p className="text-muted-foreground text-xl font-bangers tracking-wide">Upload a track to begin</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-secondary/50 rounded-xl p-4 backdrop-blur">
+    <div className="w-full bg-secondary/50 rounded-xl p-5 backdrop-blur">
       <div className="flex items-center justify-center mb-4">
         <div className="mr-4">
           <Button 
             variant="outline" 
             size="icon" 
-            className={cn("rounded-full transition-all transform", 
-              isPlaying ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-primary/20"
+            className={cn("rounded-full transition-all transform w-12 h-12", 
+              isPlaying ? "bg-primary text-primary-foreground scale-110" : "bg-secondary hover:bg-primary/20"
             )}
             onClick={togglePlayback}
           >
-            {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
+            {isPlaying ? <Pause size={22} /> : <Play size={22} className="ml-0.5" />}
           </Button>
         </div>
         
         <div className="flex-grow">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-muted-foreground font-bangers">{formatTime(currentTime)}</span>
-            <span className="text-xs text-muted-foreground font-bangers">{formatTime(duration)}</span>
+            <span className="text-sm text-muted-foreground font-bangers tracking-wide">{formatTime(currentTime)}</span>
+            <span className="text-sm text-muted-foreground font-bangers tracking-wide">{formatTime(duration)}</span>
           </div>
           <Slider
             min={0}
@@ -147,7 +159,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
             step={0.01}
             value={[currentTime]}
             onValueChange={handleTimeChange}
-            className="my-1"
+            className="my-1 h-3"
           />
           
           <AudioVisualizer isPlaying={isPlaying} />
@@ -164,22 +176,22 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
             step={0.01}
             value={[volume]}
             onValueChange={(val) => setVolume(val[0])}
-            className="w-24 ml-2"
+            className="w-28 ml-2"
           />
-          <span className="text-xs ml-2 font-bangers tracking-wide">Track</span>
+          <span className="text-sm ml-2 font-bangers tracking-wide">Track</span>
         </div>
         
         <div className="flex items-center">
-          <Disc size={18} className="animate-spin" style={{ animationDuration: '3s' }} />
+          <Disc size={20} className="animate-spin" style={{ animationDuration: '3s' }} />
           <Slider
             min={0}
             max={1}
             step={0.01}
             value={[ambientVolume]}
             onValueChange={(val) => setAmbientVolume(val[0])}
-            className="w-24 ml-2"
+            className="w-28 ml-2"
           />
-          <span className="text-xs ml-2 font-bangers tracking-wide">Ambient</span>
+          <span className="text-sm ml-2 font-bangers tracking-wide">Ambient</span>
         </div>
       </div>
     </div>

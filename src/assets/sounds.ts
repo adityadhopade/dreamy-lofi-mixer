@@ -5,13 +5,8 @@ export const ambientSounds = {
   rain: "https://assets.mixkit.co/active_storage/sfx/2532/2532.wav", 
   vinyl: "https://assets.mixkit.co/active_storage/sfx/209/209.wav",
   cafe: "https://assets.mixkit.co/active_storage/sfx/2607/2607.wav",
-  fireplace: "https://assets.mixkit.co/active_storage/sfx/913/913.wav"
+  fireplace: "https://assets.mixkit.co/active_storage/sfx/913/913.wav",
+  waves: "https://assets.mixkit.co/active_storage/sfx/2104/2104.wav",
+  wind: "https://assets.mixkit.co/active_storage/sfx/2434/2434.wav",
+  fan: "https://assets.mixkit.co/active_storage/sfx/2301/2301.wav"
 };
-
-// Demo tracks (would be removed in a real implementation)
-export const demoTracks = [
-  {
-    name: "Piano Loop",
-    url: "https://assets.mixkit.co/active_storage/sfx/233/233.wav"
-  }
-];

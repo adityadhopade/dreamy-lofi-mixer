@@ -1,7 +1,5 @@
 
-// This is a simplified audio processing utility
-// In a full implementation, you would use Web Audio API's more advanced features
-
+// This is a more complete audio processing utility using Web Audio API
 export class AudioProcessor {
   private context: AudioContext;
   private sourceNode: AudioBufferSourceNode | null = null;
@@ -14,6 +12,7 @@ export class AudioProcessor {
   private ambientBuffer: AudioBuffer | null = null;
   private processingReady = false;
   private playing = false;
+  private effectsSettings: { slowdown: number; reverb: number; lowpass: number } | null = null;
 
   constructor() {
     this.context = new AudioContext();
@@ -41,7 +40,7 @@ export class AudioProcessor {
     this.lowpassNode = this.context.createBiquadFilter();
     this.lowpassNode.type = 'lowpass';
     
-    // Setup convolver for reverb effect (simplified)
+    // Create reverb node
     this.createReverbNode();
 
     // Connect the nodes
@@ -51,16 +50,16 @@ export class AudioProcessor {
   }
 
   private async createReverbNode(): Promise<void> {
-    // Create a simple impulse response for reverb
-    // In a real app you would load an actual impulse response file
+    // Create impulse response for reverb
     const sampleRate = this.context.sampleRate;
-    const length = 2 * sampleRate; // 2 seconds
+    const length = 2 * sampleRate; // 2 seconds reverb tail
     const impulse = this.context.createBuffer(2, length, sampleRate);
     
     for (let channel = 0; channel < 2; channel++) {
       const impulseData = impulse.getChannelData(channel);
       for (let i = 0; i < length; i++) {
-        impulseData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+        // Exponential decay for more natural reverb
+        impulseData[i] = (Math.random() * 2 - 1) * Math.pow(0.8, i / (sampleRate * 0.2));
       }
     }
     
@@ -68,33 +67,25 @@ export class AudioProcessor {
     this.reverbNode.buffer = impulse;
   }
 
+  setEffectsSettings(effects: { slowdown: number; reverb: number; lowpass: number }): void {
+    this.effectsSettings = effects;
+    this.applyEffects(effects);
+  }
+
   applyEffects(effects: { slowdown: number; reverb: number; lowpass: number }): void {
     if (!this.processingReady || !this.audioBuffer) return;
 
-    // Apply lowpass filter effect
+    // Configure lowpass filter effect
     if (this.lowpassNode) {
-      // Map 0-100% to frequency range (20Hz to 20000Hz on a logarithmic scale)
-      const minFreq = Math.log10(20);
-      const maxFreq = Math.log10(20000);
-      const freqRange = maxFreq - minFreq;
+      // Map 0-100% to frequency range (200Hz to 20000Hz logarithmically)
       // Invert the effect (100% = most filtering, 0% = no filtering)
       const filterValue = 100 - effects.lowpass;
-      const normalizedValue = filterValue / 100;
-      const frequency = Math.pow(10, minFreq + normalizedValue * freqRange);
-      this.lowpassNode.frequency.value = frequency;
-    }
-
-    // Apply reverb effect
-    if (this.reverbNode && this.gainNode) {
-      // Setup a dry/wet mix for reverb
-      const dryGain = this.context.createGain();
-      const wetGain = this.context.createGain();
+      const mappedFrequency = 200 + (20000 - 200) * (filterValue / 100);
+      this.lowpassNode.frequency.value = mappedFrequency;
       
-      dryGain.gain.value = 1 - (effects.reverb / 100);
-      wetGain.gain.value = effects.reverb / 100;
+      // Add resonance for more characteristic lofi sound
+      this.lowpassNode.Q.value = 1 + (effects.lowpass / 100) * 5;
     }
-
-    // The slowdown effect will be applied when playing
   }
 
   play(startTime: number = 0): void {
@@ -106,21 +97,30 @@ export class AudioProcessor {
     this.sourceNode.buffer = this.audioBuffer;
     
     // Apply slowdown effect via playbackRate
-    if (this.sourceNode) {
+    if (this.sourceNode && this.effectsSettings) {
       // Map 70-100% to playback rate (0.7 to 1.0)
-      const playbackRate = this.effectsSettings?.slowdown 
-        ? this.effectsSettings.slowdown / 100
-        : 1.0;
+      const playbackRate = this.effectsSettings.slowdown / 100;
       this.sourceNode.playbackRate.value = playbackRate;
     }
     
     // Connect the source to the processing chain
-    if (this.lowpassNode && this.reverbNode) {
+    if (this.lowpassNode && this.reverbNode && this.gainNode) {
+      const dryGain = this.context.createGain();
+      const wetGain = this.context.createGain();
+      
+      if (this.effectsSettings) {
+        dryGain.gain.value = 1 - (this.effectsSettings.reverb / 100);
+        wetGain.gain.value = this.effectsSettings.reverb / 100 * 0.6; // Scale down reverb slightly
+      }
+      
       this.sourceNode.connect(this.lowpassNode);
+      this.lowpassNode.connect(dryGain);
       this.lowpassNode.connect(this.reverbNode);
-      this.reverbNode.connect(this.gainNode!);
-    } else {
-      this.sourceNode.connect(this.gainNode!);
+      this.reverbNode.connect(wetGain);
+      dryGain.connect(this.gainNode);
+      wetGain.connect(this.gainNode);
+    } else if (this.gainNode) {
+      this.sourceNode.connect(this.gainNode);
     }
     
     // Play the source from the specified position
@@ -177,14 +177,6 @@ export class AudioProcessor {
     }
   }
 
-  // Store the current effects settings
-  private effectsSettings: { slowdown: number; reverb: number; lowpass: number } | null = null;
-  
-  setEffectsSettings(effects: { slowdown: number; reverb: number; lowpass: number }): void {
-    this.effectsSettings = effects;
-    this.applyEffects(effects);
-  }
-
   getCurrentTime(): number {
     return this.context.currentTime;
   }
@@ -199,7 +191,7 @@ export class AudioProcessor {
     // Create an offline audio context for rendering
     const offlineCtx = new OfflineAudioContext(
       this.audioBuffer.numberOfChannels,
-      this.audioBuffer.length,
+      this.audioBuffer.length * (100 / this.effectsSettings.slowdown), // Adjust length based on slowdown
       this.audioBuffer.sampleRate
     );
 
@@ -213,17 +205,31 @@ export class AudioProcessor {
     // Create filter
     const filter = offlineCtx.createBiquadFilter();
     filter.type = 'lowpass';
-    const minFreq = Math.log10(20);
-    const maxFreq = Math.log10(20000);
-    const freqRange = maxFreq - minFreq;
     const filterValue = 100 - this.effectsSettings.lowpass;
-    const normalizedValue = filterValue / 100;
-    const frequency = Math.pow(10, minFreq + normalizedValue * freqRange);
-    filter.frequency.value = frequency;
+    const mappedFrequency = 200 + (20000 - 200) * (filterValue / 100);
+    filter.frequency.value = mappedFrequency;
+    filter.Q.value = 1 + (this.effectsSettings.lowpass / 100) * 5;
     
-    // Connect and start
+    // Create reverb
+    const reverbNode = offlineCtx.createConvolver();
+    const reverbImpulse = await this.createOfflineReverb(offlineCtx);
+    reverbNode.buffer = reverbImpulse;
+    
+    // Create dry/wet mix for reverb
+    const dryGain = offlineCtx.createGain();
+    const wetGain = offlineCtx.createGain();
+    dryGain.gain.value = 1 - (this.effectsSettings.reverb / 100);
+    wetGain.gain.value = this.effectsSettings.reverb / 100 * 0.6;
+    
+    // Connect nodes
     source.connect(filter);
-    filter.connect(offlineCtx.destination);
+    filter.connect(dryGain);
+    filter.connect(reverbNode);
+    reverbNode.connect(wetGain);
+    dryGain.connect(offlineCtx.destination);
+    wetGain.connect(offlineCtx.destination);
+    
+    // Start source
     source.start();
     
     // Render audio
@@ -234,9 +240,23 @@ export class AudioProcessor {
     
     return wavBlob;
   }
+  
+  private async createOfflineReverb(ctx: OfflineAudioContext): Promise<AudioBuffer> {
+    const sampleRate = ctx.sampleRate;
+    const length = 2 * sampleRate; // 2 seconds
+    const impulse = ctx.createBuffer(2, length, sampleRate);
+    
+    for (let channel = 0; channel < 2; channel++) {
+      const impulseData = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        impulseData[i] = (Math.random() * 2 - 1) * Math.pow(0.8, i / (sampleRate * 0.2));
+      }
+    }
+    
+    return impulse;
+  }
 
   private audioBufferToWav(buffer: AudioBuffer): Blob {
-    // This is a simplified WAV encoder - in a real app you would use a proper encoder library
     const numChannels = buffer.numberOfChannels;
     const sampleRate = buffer.sampleRate;
     const format = 1; // PCM
