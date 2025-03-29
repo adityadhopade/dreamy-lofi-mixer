@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import FileUpload from '@/components/FileUpload';
 import AudioPlayer from '@/components/AudioPlayer';
 import EffectsPanel, { EffectsSettings } from '@/components/EffectsPanel';
@@ -63,22 +63,24 @@ const Index = () => {
       // Apply the effects
       audioProcessorRef.current.setEffectsSettings(effects);
       
-      // Load ambient sound
-      const ambientUrl = ambientSounds[ambientType as keyof typeof ambientSounds];
+      // Load ambient sound (if not 'none')
+      let ambientUrl = null;
+      if (ambientType !== 'none') {
+        ambientUrl = ambientSounds[ambientType as keyof typeof ambientSounds];
+        if (ambientUrl) {
+          await audioProcessorRef.current.loadAmbientSound(ambientUrl);
+        }
+      }
       setAmbientSoundUrl(ambientUrl);
       
-      if (ambientUrl) {
-        await audioProcessorRef.current.loadAmbientSound(ambientUrl);
-      }
-      
-      // Simulate processing time to give feedback to user
+      // Process for a short time to give feedback to user
       setTimeout(() => {
         setIsProcessing(false);
         setIsProcessed(true);
         
         toast({
           title: "Lofi transformation complete!",
-          description: "Your track has been transformed with lofi effects.",
+          description: "Your track has been transformed with lofi effects. Hit play to listen or download your creation.",
         });
       }, 1500);
     } catch (error) {
@@ -151,18 +153,18 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-lofi-black to-lofi-black/95 text-foreground flex flex-col">
-      <header className="container mx-auto py-8">
+      <header className="container mx-auto py-10">
         <div className="flex items-center justify-center">
           <div className="bg-gradient-to-r from-lofi-gradient1 to-lofi-gradient2 p-0.5 rounded-full">
             <div className="bg-lofi-black rounded-full p-2">
-              <HeadphonesIcon className="w-10 h-10 text-lofi-purple" />
+              <HeadphonesIcon className="w-12 h-12 text-lofi-purple" />
             </div>
           </div>
-          <h1 className="text-5xl font-bold ml-4 bg-gradient-to-r from-lofi-purple to-lofi-blue bg-clip-text text-transparent font-bangers tracking-wider">
+          <h1 className="text-6xl font-bold ml-4 bg-gradient-to-r from-lofi-purple to-lofi-blue bg-clip-text text-transparent font-bangers tracking-wider">
             Dreamy Lofi Creator
           </h1>
         </div>
-        <p className="text-center text-muted-foreground mt-3 max-w-md mx-auto font-bangers text-xl tracking-wide">
+        <p className="text-center text-muted-foreground mt-4 max-w-md mx-auto font-bangers text-2xl tracking-wide">
           Transform your music into chill, lofi vibes with our AI-powered audio processor
         </p>
       </header>
@@ -173,7 +175,7 @@ const Index = () => {
             <Card className="border-0 bg-lofi-card shadow-lg hover:shadow-xl transition-all duration-300">
               <CardContent className="p-6">
                 <h2 className="text-3xl font-medium mb-5 flex items-center text-lofi-purple font-bangers tracking-wide">
-                  <Disc className="w-6 h-6 mr-3 animate-spin" style={{ animationDuration: '8s' }} />
+                  <Disc className="w-8 h-8 mr-3 animate-spin" style={{ animationDuration: '8s' }} />
                   Upload Your Track
                 </h2>
                 <FileUpload 
@@ -186,7 +188,7 @@ const Index = () => {
             <div className="space-y-3">
               {(audioUrl && !isProcessed) ? (
                 <div className="flex flex-col items-center justify-center h-56 bg-lofi-card/50 rounded-xl p-4 backdrop-blur">
-                  <Disc className="text-muted-foreground h-16 w-16 mb-4 opacity-20 animate-spin-slow" />
+                  <Disc className="text-muted-foreground h-16 w-16 mb-4 opacity-20 animate-spin" style={{ animationDuration: '8s' }} />
                   <p className="text-muted-foreground text-2xl font-bangers tracking-wide">
                     Apply effects to preview your lofi track
                   </p>
@@ -194,24 +196,18 @@ const Index = () => {
               ) : (audioUrl && isProcessed) ? (
                 <>
                   <div className="flex justify-between items-center">
-                    <h3 className="text-2xl font-medium text-lofi-purple flex items-center font-bangers tracking-wide">
-                      <AudioWaveform className="w-5 h-5 mr-2 animate-pulse-slow" /> 
+                    <h3 className="text-3xl font-medium text-lofi-purple flex items-center font-bangers tracking-wide">
+                      <AudioWaveform className="w-6 h-6 mr-2 animate-pulse-slow" /> 
                       Lofi Version
                     </h3>
-                    <Button 
-                      onClick={handleDownload}
-                      variant="outline"
-                      size="lg"
-                      className="bg-lofi-purple/20 hover:bg-lofi-purple/30 border-lofi-purple/30 text-lofi-purple font-bangers tracking-wide text-lg"
-                    >
-                      <Download className="w-5 h-5 mr-2" /> Download Track
-                    </Button>
                   </div>
                   <div className="transform transition-all duration-300 hover:scale-[1.01]">
                     <AudioPlayer 
                       audioUrl={audioUrl} 
                       isProcessed={isProcessed}
                       ambientSoundUrl={ambientSoundUrl}
+                      audioProcessor={audioProcessorRef.current}
+                      onDownload={handleDownload}
                     />
                   </div>
                 </>
@@ -230,7 +226,7 @@ const Index = () => {
             <Card className="border-0 bg-lofi-card shadow-lg overflow-hidden">
               <CardContent className="p-6">
                 <h2 className="text-3xl font-medium mb-5 flex items-center text-lofi-purple font-bangers tracking-wide">
-                  <BrainCircuit className="w-6 h-6 mr-3 animate-pulse-slow" />
+                  <BrainCircuit className="w-8 h-8 mr-3 animate-pulse-slow" />
                   Lofi Transformation
                 </h2>
                 <EffectsPanel 
@@ -243,44 +239,44 @@ const Index = () => {
           </div>
         </div>
         
-        <div className="mt-12 bg-lofi-card rounded-xl p-8 border border-lofi-purple/20 shadow-lg w-full">
-          <h3 className="font-bangers tracking-wide text-3xl text-lofi-purple text-center mb-6">How It Works</h3>
+        <div className="mt-16 bg-lofi-card rounded-xl p-8 border border-lofi-purple/20 shadow-lg w-full">
+          <h3 className="font-bangers tracking-wide text-4xl text-lofi-purple text-center mb-8">How It Works</h3>
           <div className="grid md:grid-cols-5 gap-6 text-center">
             <div className="p-6 bg-lofi-black/50 rounded-lg hover:bg-lofi-black/70 transition-colors transform hover:scale-105 duration-300">
-              <div className="bg-lofi-purple/20 rounded-full p-4 w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                <Music className="text-lofi-purple w-10 h-10" />
+              <div className="bg-lofi-purple/20 rounded-full p-4 w-24 h-24 flex items-center justify-center mx-auto mb-4">
+                <Music className="text-lofi-purple w-12 h-12" />
               </div>
               <p className="font-bangers text-2xl tracking-wide text-lofi-purple mb-2">1. Upload Audio</p>
               <p className="text-base text-muted-foreground">Upload your favorite audio or video file</p>
             </div>
             
             <div className="p-6 bg-lofi-black/50 rounded-lg hover:bg-lofi-black/70 transition-colors transform hover:scale-105 duration-300">
-              <div className="bg-lofi-blue/20 rounded-full p-4 w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                <AudioWaveform className="text-lofi-blue w-10 h-10" />
+              <div className="bg-lofi-blue/20 rounded-full p-4 w-24 h-24 flex items-center justify-center mx-auto mb-4">
+                <AudioWaveform className="text-lofi-blue w-12 h-12" />
               </div>
               <p className="font-bangers text-2xl tracking-wide text-lofi-blue mb-2">2. Adjust Effects</p>
               <p className="text-base text-muted-foreground">Tweak lofi settings to your preference</p>
             </div>
             
             <div className="p-6 bg-lofi-black/50 rounded-lg hover:bg-lofi-black/70 transition-colors transform hover:scale-105 duration-300">
-              <div className="bg-lofi-teal/20 rounded-full p-4 w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                <Disc className="text-lofi-teal w-10 h-10" />
+              <div className="bg-lofi-teal/20 rounded-full p-4 w-24 h-24 flex items-center justify-center mx-auto mb-4">
+                <Disc className="text-lofi-teal w-12 h-12" />
               </div>
               <p className="font-bangers text-2xl tracking-wide text-lofi-teal mb-2">3. Add Ambience</p>
               <p className="text-base text-muted-foreground">Choose ambient backgrounds for atmosphere</p>
             </div>
             
             <div className="p-6 bg-lofi-black/50 rounded-lg hover:bg-lofi-black/70 transition-colors transform hover:scale-105 duration-300">
-              <div className="bg-lofi-yellow/20 rounded-full p-4 w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                <BrainCircuit className="text-lofi-yellow w-10 h-10" />
+              <div className="bg-lofi-yellow/20 rounded-full p-4 w-24 h-24 flex items-center justify-center mx-auto mb-4">
+                <BrainCircuit className="text-lofi-yellow w-12 h-12" />
               </div>
               <p className="font-bangers text-2xl tracking-wide text-lofi-yellow mb-2">4. Transform</p>
               <p className="text-base text-muted-foreground">Process your track with AI-powered effects</p>
             </div>
             
             <div className="p-6 bg-lofi-black/50 rounded-lg hover:bg-lofi-black/70 transition-colors transform hover:scale-105 duration-300">
-              <div className="bg-lofi-pink/20 rounded-full p-4 w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                <Download className="text-lofi-pink w-10 h-10" />
+              <div className="bg-lofi-pink/20 rounded-full p-4 w-24 h-24 flex items-center justify-center mx-auto mb-4">
+                <Download className="text-lofi-pink w-12 h-12" />
               </div>
               <p className="font-bangers text-2xl tracking-wide text-lofi-pink mb-2">5. Download</p>
               <p className="text-base text-muted-foreground">Save your perfect lofi creation</p>
@@ -289,7 +285,7 @@ const Index = () => {
         </div>
       </main>
 
-      <footer className="bg-lofi-black mt-12 pt-10 pb-8 border-t border-lofi-purple/10">
+      <footer className="bg-lofi-black mt-16 pt-12 pb-8 border-t border-lofi-purple/10">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center mb-8">
             <div className="flex items-center mb-6 md:mb-0">
@@ -299,27 +295,27 @@ const Index = () => {
               </span>
             </div>
             
-            <div className="flex space-x-6">
-              <a href="#" className="text-muted-foreground hover:text-lofi-purple transition-colors text-lg font-bangers tracking-wide">
+            <div className="flex space-x-8">
+              <a href="#" className="text-muted-foreground hover:text-lofi-purple transition-colors text-xl font-bangers tracking-wide">
                 About
               </a>
-              <a href="#" className="text-muted-foreground hover:text-lofi-purple transition-colors text-lg font-bangers tracking-wide">
+              <a href="#" className="text-muted-foreground hover:text-lofi-purple transition-colors text-xl font-bangers tracking-wide">
                 Privacy
               </a>
-              <a href="#" className="text-muted-foreground hover:text-lofi-purple transition-colors text-lg font-bangers tracking-wide">
+              <a href="#" className="text-muted-foreground hover:text-lofi-purple transition-colors text-xl font-bangers tracking-wide">
                 Terms
               </a>
-              <a href="#" className="text-muted-foreground hover:text-lofi-purple transition-colors text-lg font-bangers tracking-wide">
+              <a href="#" className="text-muted-foreground hover:text-lofi-purple transition-colors text-xl font-bangers tracking-wide">
                 Contact
               </a>
             </div>
           </div>
           
           <div className="text-center border-t border-lofi-purple/10 pt-8">
-            <p className="text-base text-muted-foreground mb-2 font-bangers tracking-wide">
-              Made with <Heart className="inline h-4 w-4 text-lofi-pink" /> for all lofi enthusiasts
+            <p className="text-xl text-muted-foreground mb-2 font-bangers tracking-wide">
+              Made with <Heart className="inline h-5 w-5 text-lofi-pink" /> for all lofi enthusiasts
             </p>
-            <p className="text-sm text-muted-foreground font-bangers tracking-wide">
+            <p className="text-lg text-muted-foreground font-bangers tracking-wide">
               © {new Date().getFullYear()} Dreamy Lofi Creator. All rights reserved.
             </p>
           </div>

@@ -1,11 +1,13 @@
-
 // This is a more complete audio processing utility using Web Audio API
 export class AudioProcessor {
   private context: AudioContext;
   private sourceNode: AudioBufferSourceNode | null = null;
   private gainNode: GainNode | null = null;
   private lowpassNode: BiquadFilterNode | null = null;
+  private highpassNode: BiquadFilterNode | null = null;
   private reverbNode: ConvolverNode | null = null;
+  private analyserNode: AnalyserNode | null = null;
+  private compressorNode: DynamicsCompressorNode | null = null;
   private audioBuffer: AudioBuffer | null = null;
   private ambientSourceNode: AudioBufferSourceNode | null = null;
   private ambientGainNode: GainNode | null = null;
@@ -13,6 +15,7 @@ export class AudioProcessor {
   private processingReady = false;
   private playing = false;
   private effectsSettings: { slowdown: number; reverb: number; lowpass: number } | null = null;
+  private visualDataArray: Uint8Array | null = null;
 
   constructor() {
     this.context = new AudioContext();
@@ -34,11 +37,37 @@ export class AudioProcessor {
     }
   }
 
+  getAnalyserData(): Uint8Array | null {
+    if (!this.analyserNode || !this.visualDataArray) return null;
+    this.analyserNode.getByteFrequencyData(this.visualDataArray);
+    return this.visualDataArray;
+  }
+
   private setupNodes(): void {
     // Create basic nodes
     this.gainNode = this.context.createGain();
+    
+    // Create filter nodes
     this.lowpassNode = this.context.createBiquadFilter();
     this.lowpassNode.type = 'lowpass';
+    
+    this.highpassNode = this.context.createBiquadFilter();
+    this.highpassNode.type = 'highpass';
+    this.highpassNode.frequency.value = 20; // Default value
+    
+    // Create compressor for that lofi "squashed" sound
+    this.compressorNode = this.context.createDynamicsCompressor();
+    this.compressorNode.threshold.value = -24;
+    this.compressorNode.knee.value = 30;
+    this.compressorNode.ratio.value = 12;
+    this.compressorNode.attack.value = 0.003;
+    this.compressorNode.release.value = 0.25;
+    
+    // Create analyser for visualizations
+    this.analyserNode = this.context.createAnalyser();
+    this.analyserNode.fftSize = 256;
+    const bufferLength = this.analyserNode.frequencyBinCount;
+    this.visualDataArray = new Uint8Array(bufferLength);
     
     // Create reverb node
     this.createReverbNode();
@@ -77,14 +106,29 @@ export class AudioProcessor {
 
     // Configure lowpass filter effect
     if (this.lowpassNode) {
-      // Map 0-100% to frequency range (200Hz to 20000Hz logarithmically)
+      // Map 0-100% to frequency range (100Hz to 20000Hz logarithmically)
       // Invert the effect (100% = most filtering, 0% = no filtering)
       const filterValue = 100 - effects.lowpass;
-      const mappedFrequency = 200 + (20000 - 200) * (filterValue / 100);
+      const mappedFrequency = 100 + (20000 - 100) * (filterValue / 100);
       this.lowpassNode.frequency.value = mappedFrequency;
       
       // Add resonance for more characteristic lofi sound
       this.lowpassNode.Q.value = 1 + (effects.lowpass / 100) * 5;
+    }
+    
+    // Configure highpass filter - subtle for lofi sound
+    if (this.highpassNode) {
+      // Higher lowpass effect means we also want a bit more highpass to get that "telephone" midrange sound
+      const highpassValue = 20 + (effects.lowpass / 100) * 200;
+      this.highpassNode.frequency.value = highpassValue;
+    }
+    
+    // Configure compressor to add more "squash" as effects intensity increases
+    if (this.compressorNode) {
+      // More intense effects = more compression
+      const averageEffectsIntensity = (effects.lowpass + effects.reverb) / 200;
+      this.compressorNode.threshold.value = -24 - (averageEffectsIntensity * 12);
+      this.compressorNode.ratio.value = 4 + (averageEffectsIntensity * 8);
     }
   }
 
@@ -104,23 +148,39 @@ export class AudioProcessor {
     }
     
     // Connect the source to the processing chain
-    if (this.lowpassNode && this.reverbNode && this.gainNode) {
+    if (this.lowpassNode && this.highpassNode && this.compressorNode && 
+        this.reverbNode && this.analyserNode && this.gainNode) {
       const dryGain = this.context.createGain();
       const wetGain = this.context.createGain();
       
       if (this.effectsSettings) {
+        // Calculate dry/wet mix for reverb
         dryGain.gain.value = 1 - (this.effectsSettings.reverb / 100);
         wetGain.gain.value = this.effectsSettings.reverb / 100 * 0.6; // Scale down reverb slightly
       }
       
-      this.sourceNode.connect(this.lowpassNode);
-      this.lowpassNode.connect(dryGain);
-      this.lowpassNode.connect(this.reverbNode);
-      this.reverbNode.connect(wetGain);
+      // Full signal chain with audio effects in logical order:
+      // Source -> HighPass -> LowPass -> Compressor -> [Split to dry/wet paths] -> Gain -> Analyser -> Output
+      this.sourceNode.connect(this.highpassNode);
+      this.highpassNode.connect(this.lowpassNode);
+      this.lowpassNode.connect(this.compressorNode);
+      
+      // Dry path (no reverb)
+      this.compressorNode.connect(dryGain);
       dryGain.connect(this.gainNode);
+      
+      // Wet path (with reverb)
+      this.compressorNode.connect(this.reverbNode);
+      this.reverbNode.connect(wetGain);
       wetGain.connect(this.gainNode);
+      
+      // Connect to analyser for visualizations
+      this.gainNode.connect(this.analyserNode);
+      this.analyserNode.connect(this.context.destination);
     } else if (this.gainNode) {
+      // Fallback simple connection if somehow our nodes aren't created
       this.sourceNode.connect(this.gainNode);
+      this.gainNode.connect(this.context.destination);
     }
     
     // Play the source from the specified position
@@ -202,13 +262,25 @@ export class AudioProcessor {
     // Apply playback rate (slowdown)
     source.playbackRate.value = this.effectsSettings.slowdown / 100;
     
-    // Create filter
-    const filter = offlineCtx.createBiquadFilter();
-    filter.type = 'lowpass';
+    // Create filter nodes
+    const lowpassFilter = offlineCtx.createBiquadFilter();
+    lowpassFilter.type = 'lowpass';
     const filterValue = 100 - this.effectsSettings.lowpass;
-    const mappedFrequency = 200 + (20000 - 200) * (filterValue / 100);
-    filter.frequency.value = mappedFrequency;
-    filter.Q.value = 1 + (this.effectsSettings.lowpass / 100) * 5;
+    const mappedFrequency = 100 + (20000 - 100) * (filterValue / 100);
+    lowpassFilter.frequency.value = mappedFrequency;
+    lowpassFilter.Q.value = 1 + (this.effectsSettings.lowpass / 100) * 5;
+    
+    const highpassFilter = offlineCtx.createBiquadFilter();
+    highpassFilter.type = 'highpass';
+    highpassFilter.frequency.value = 20 + (this.effectsSettings.lowpass / 100) * 200;
+    
+    // Create compressor
+    const compressor = offlineCtx.createDynamicsCompressor();
+    compressor.threshold.value = -24;
+    compressor.knee.value = 30;
+    compressor.ratio.value = 12;
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.25;
     
     // Create reverb
     const reverbNode = offlineCtx.createConvolver();
@@ -221,12 +293,18 @@ export class AudioProcessor {
     dryGain.gain.value = 1 - (this.effectsSettings.reverb / 100);
     wetGain.gain.value = this.effectsSettings.reverb / 100 * 0.6;
     
-    // Connect nodes
-    source.connect(filter);
-    filter.connect(dryGain);
-    filter.connect(reverbNode);
-    reverbNode.connect(wetGain);
+    // Connect nodes in the correct order for lofi effect chain
+    source.connect(highpassFilter);
+    highpassFilter.connect(lowpassFilter);
+    lowpassFilter.connect(compressor);
+    
+    // Dry path (no reverb)
+    compressor.connect(dryGain);
     dryGain.connect(offlineCtx.destination);
+    
+    // Wet path (with reverb)
+    compressor.connect(reverbNode);
+    reverbNode.connect(wetGain);
     wetGain.connect(offlineCtx.destination);
     
     // Start source
@@ -235,10 +313,57 @@ export class AudioProcessor {
     // Render audio
     const renderedBuffer = await offlineCtx.startRendering();
     
+    // Add bit-crushing effect (simulate lower sample rate and bit depth)
+    const bitCrushedBuffer = this.applyBitCrushing(renderedBuffer, this.effectsSettings.lowpass / 100);
+    
     // Convert to wav
-    const wavBlob = this.audioBufferToWav(renderedBuffer);
+    const wavBlob = this.audioBufferToWav(bitCrushedBuffer);
     
     return wavBlob;
+  }
+  
+  private applyBitCrushing(buffer: AudioBuffer, intensity: number): AudioBuffer {
+    // Skip bit-crushing if intensity is low
+    if (intensity < 0.2) return buffer;
+    
+    // Create a new buffer with the same specs
+    const newBuffer = this.context.createBuffer(
+      buffer.numberOfChannels,
+      buffer.length,
+      buffer.sampleRate
+    );
+    
+    // The effective bit depth (lower = more crushed)
+    // Map intensity 0.2-1.0 to bit depth reduction 0-4 bits (16-bit down to 12-bit)
+    const bitReduction = Math.floor((intensity - 0.2) * 5);
+    const bitMask = ~((1 << bitReduction) - 1);
+    
+    // Sample rate reduction (keep every Nth sample, copy it N times)
+    // As intensity increases, we reduce the sample rate more (keep every 1-4 samples)
+    const sampleReduction = Math.max(1, Math.floor(intensity * 4));
+    
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const inputData = buffer.getChannelData(channel);
+      const outputData = newBuffer.getChannelData(channel);
+      
+      let lastSample = 0;
+      for (let i = 0; i < buffer.length; i++) {
+        // Only calculate a new sample value on every Nth sample
+        if (i % sampleReduction === 0) {
+          // Quantize the sample to fewer bits
+          const sample = inputData[i];
+          // Convert float (-1 to 1) to int16, apply bit mask, convert back to float
+          const int16 = Math.floor(sample * 32767);
+          const reduced = (int16 & bitMask) / 32767;
+          lastSample = reduced;
+        }
+        
+        // Copy the last calculated sample
+        outputData[i] = lastSample;
+      }
+    }
+    
+    return newBuffer;
   }
   
   private async createOfflineReverb(ctx: OfflineAudioContext): Promise<AudioBuffer> {

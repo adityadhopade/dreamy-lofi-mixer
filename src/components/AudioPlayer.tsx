@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Volume2, Volume1, VolumeX, Play, Pause, Disc } from 'lucide-react';
+import { Volume2, Volume1, VolumeX, Play, Pause, Disc, Download } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import AudioVisualizer from './AudioVisualizer';
@@ -10,9 +10,17 @@ interface AudioPlayerProps {
   audioUrl: string | null;
   isProcessed: boolean;
   ambientSoundUrl: string | null;
+  audioProcessor?: any;
+  onDownload?: () => void;
 }
 
-const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambientSoundUrl }) => {
+const AudioPlayer: React.FC<AudioPlayerProps> = ({ 
+  audioUrl, 
+  isProcessed, 
+  ambientSoundUrl, 
+  audioProcessor,
+  onDownload
+}) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -20,6 +28,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
   const [ambientVolume, setAmbientVolume] = useState(0.3);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ambientRef = useRef<HTMLAudioElement | null>(null);
+  const animationRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!audioUrl) return;
@@ -81,34 +90,98 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
     ambientRef.current.volume = ambientVolume;
   }, [ambientVolume]);
 
+  // Use AudioProcessor if available, otherwise use audio element
   const togglePlayback = () => {
+    if (audioProcessor && isProcessed) {
+      if (isPlaying) {
+        audioProcessor.pause();
+      } else {
+        audioProcessor.play(currentTime);
+      }
+      setIsPlaying(!isPlaying);
+      return;
+    }
+    
+    // Fallback to classic Audio element
     if (!audioRef.current) return;
     
     if (isPlaying) {
       audioRef.current.pause();
       ambientRef.current?.pause();
     } else {
-      // Apply lofi effects on play if processed
-      if (isProcessed) {
-        // The actual audio processing happens elsewhere, here we just need to play
-        audioRef.current.play().catch(err => console.error("Error playing audio:", err));
-        
-        if (ambientRef.current) {
-          ambientRef.current.play().catch(err => console.error("Error playing ambient:", err));
-        }
-      } else {
-        // Play original audio
-        audioRef.current.play().catch(err => console.error("Error playing audio:", err));
+      audioRef.current.currentTime = currentTime;
+      audioRef.current.play().catch(err => console.error("Error playing audio:", err));
+      
+      if (ambientRef.current) {
+        ambientRef.current.play().catch(err => console.error("Error playing ambient:", err));
       }
     }
     
     setIsPlaying(!isPlaying);
   };
 
+  // Update audioProcessor time if we're using it
+  useEffect(() => {
+    if (!isPlaying || !audioProcessor) return;
+    
+    const updateTime = () => {
+      const newTime = audioProcessor.getCurrentTime?.() || 0;
+      setCurrentTime(prevTime => {
+        // If we're using AudioProcessor, increment time manually based on elapsed time
+        return prevTime + 0.05; // Update approximately every 50ms
+      });
+      
+      // Stop if we reach the end
+      if (currentTime >= duration) {
+        setIsPlaying(false);
+        setCurrentTime(0);
+        audioProcessor.pause();
+        return;
+      }
+      
+      animationRef.current = requestAnimationFrame(updateTime);
+    };
+    
+    animationRef.current = requestAnimationFrame(updateTime);
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+    };
+  }, [isPlaying, audioProcessor, duration]);
+
   const handleTimeChange = (value: number[]) => {
-    if (!audioRef.current) return;
-    audioRef.current.currentTime = value[0];
-    setCurrentTime(value[0]);
+    const newTime = value[0];
+    setCurrentTime(newTime);
+    
+    if (audioProcessor && isProcessed) {
+      if (isPlaying) {
+        audioProcessor.pause();
+        audioProcessor.play(newTime);
+      }
+    } else if (audioRef.current) {
+      audioRef.current.currentTime = newTime;
+    }
+  };
+
+  const handleVolumeChange = (value: number[]) => {
+    const newVolume = value[0];
+    setVolume(newVolume);
+    
+    if (audioProcessor && isProcessed) {
+      audioProcessor.setVolume(newVolume);
+    }
+  };
+
+  const handleAmbientVolumeChange = (value: number[]) => {
+    const newVolume = value[0];
+    setAmbientVolume(newVolume);
+    
+    if (audioProcessor && isProcessed) {
+      audioProcessor.setAmbientVolume(newVolume);
+    }
   };
 
   const formatTime = (time: number) => {
@@ -127,7 +200,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
   if (!audioUrl) {
     return (
       <div className="w-full h-24 bg-secondary/50 rounded-xl flex items-center justify-center">
-        <p className="text-muted-foreground text-xl font-bangers tracking-wide">Upload a track to begin</p>
+        <p className="text-muted-foreground text-2xl font-bangers tracking-wide">Upload a track to begin</p>
       </div>
     );
   }
@@ -162,7 +235,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
             className="my-1 h-3"
           />
           
-          <AudioVisualizer isPlaying={isPlaying} />
+          <AudioVisualizer isPlaying={isPlaying} audioProcessor={audioProcessor} />
         </div>
       </div>
       
@@ -175,7 +248,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
             max={1}
             step={0.01}
             value={[volume]}
-            onValueChange={(val) => setVolume(val[0])}
+            onValueChange={handleVolumeChange}
             className="w-28 ml-2"
           />
           <span className="text-sm ml-2 font-bangers tracking-wide">Track</span>
@@ -188,12 +261,25 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
             max={1}
             step={0.01}
             value={[ambientVolume]}
-            onValueChange={(val) => setAmbientVolume(val[0])}
+            onValueChange={handleAmbientVolumeChange}
             className="w-28 ml-2"
           />
           <span className="text-sm ml-2 font-bangers tracking-wide">Ambient</span>
         </div>
       </div>
+      
+      {isProcessed && onDownload && (
+        <div className="mt-4 flex justify-center">
+          <Button 
+            onClick={onDownload}
+            variant="secondary"
+            size="lg"
+            className="bg-lofi-purple/20 hover:bg-lofi-purple/30 border-lofi-purple/30 text-lofi-purple font-bangers tracking-wide text-lg"
+          >
+            <Download className="w-5 h-5 mr-2" /> Download Lofi Track
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

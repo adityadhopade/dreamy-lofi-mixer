@@ -61,87 +61,114 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({ onApplyEffects, isProcessin
   ];
 
   return (
-    <div className="bg-secondary/50 rounded-xl p-4 backdrop-blur">
-      <h3 className="font-medium mb-6 text-gradient font-bangers tracking-wide text-2xl">Lofi Effects</h3>
+    <div className="bg-secondary/50 rounded-xl p-6 backdrop-blur">
+      <h3 className="font-medium mb-8 text-gradient font-bangers tracking-wide text-3xl text-center">Lofi Effects</h3>
       
-      <div className="space-y-6">
-        <div className="space-y-3">
+      <div className="space-y-8">
+        <div className="space-y-4">
           <div className="flex justify-between">
-            <Label className="text-xl font-bangers tracking-wide">Slowdown</Label>
-            <span className="text-base text-muted-foreground font-bangers">{effects.slowdown}%</span>
+            <Label className="text-2xl font-bangers tracking-wide">Slowdown</Label>
+            <span className="text-xl text-muted-foreground font-bangers">{effects.slowdown}%</span>
           </div>
-          <Slider 
-            min={70} 
-            max={100} 
-            step={1}
-            value={[effects.slowdown]}
-            onValueChange={(val) => handleEffectChange('slowdown', val)}
-            disabled={!audioUploaded || isProcessing}
-            className="h-3"
-          />
+          <div className="relative pt-2">
+            <div className="absolute -top-2 left-0 w-full flex justify-between text-xs text-muted-foreground">
+              <span>Slower</span>
+              <span>Original</span>
+            </div>
+            <Slider 
+              min={70} 
+              max={100} 
+              step={1}
+              value={[effects.slowdown]}
+              onValueChange={(val) => handleEffectChange('slowdown', val)}
+              disabled={!audioUploaded || isProcessing}
+              className="h-3"
+            />
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Slows down the track for that classic lofi vibe. Lower values create a more dreamlike sound.
+          </p>
         </div>
         
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex justify-between">
-            <Label className="text-xl font-bangers tracking-wide">Reverb</Label>
-            <span className="text-base text-muted-foreground font-bangers">{effects.reverb}%</span>
+            <Label className="text-2xl font-bangers tracking-wide">Reverb</Label>
+            <span className="text-xl text-muted-foreground font-bangers">{effects.reverb}%</span>
           </div>
-          <Slider 
-            min={0} 
-            max={100} 
-            step={1}
-            value={[effects.reverb]}
-            onValueChange={(val) => handleEffectChange('reverb', val)}
-            disabled={!audioUploaded || isProcessing}
-            className="h-3"
-          />
+          <div className="relative pt-2">
+            <div className="absolute -top-2 left-0 w-full flex justify-between text-xs text-muted-foreground">
+              <span>Dry</span>
+              <span>Wet</span>
+            </div>
+            <Slider 
+              min={0} 
+              max={100} 
+              step={1}
+              value={[effects.reverb]}
+              onValueChange={(val) => handleEffectChange('reverb', val)}
+              disabled={!audioUploaded || isProcessing}
+              className="h-3"
+            />
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Adds spaciousness and atmosphere to the track. Higher values create a more distant, dreamy sound.
+          </p>
         </div>
         
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex justify-between">
-            <Label className="text-xl font-bangers tracking-wide">Low Pass Filter</Label>
-            <span className="text-base text-muted-foreground font-bangers">{effects.lowpass}%</span>
+            <Label className="text-2xl font-bangers tracking-wide">Low Pass Filter</Label>
+            <span className="text-xl text-muted-foreground font-bangers">{effects.lowpass}%</span>
           </div>
-          <Slider 
-            min={0} 
-            max={100} 
-            step={1}
-            value={[effects.lowpass]}
-            onValueChange={(val) => handleEffectChange('lowpass', val)}
-            disabled={!audioUploaded || isProcessing}
-            className="h-3"
-          />
+          <div className="relative pt-2">
+            <div className="absolute -top-2 left-0 w-full flex justify-between text-xs text-muted-foreground">
+              <span>Clear</span>
+              <span>Muffled</span>
+            </div>
+            <Slider 
+              min={0} 
+              max={100} 
+              step={1}
+              value={[effects.lowpass]}
+              onValueChange={(val) => handleEffectChange('lowpass', val)}
+              disabled={!audioUploaded || isProcessing}
+              className="h-3"
+            />
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Removes high frequencies for the warm, cozy lofi sound. Higher values create a more "underwater" effect.
+          </p>
         </div>
         
-        <div className="pt-2">
-          <Label className="text-xl mb-3 block font-bangers tracking-wide">Ambient Sound</Label>
+        <div className="pt-4">
+          <Label className="text-2xl mb-4 block font-bangers tracking-wide">Ambient Sound</Label>
           
           <Carousel
             opts={{
-              align: "start",
+              align: "center",
               loop: true,
             }}
             className="w-full"
           >
             <CarouselContent>
               {ambientOptions.map((option) => (
-                <CarouselItem key={option.id} className="basis-1/3">
+                <CarouselItem key={option.id} className="basis-1/3 md:basis-1/3 lg:basis-1/3">
                   <div className="p-1">
                     <RadioGroup value={ambientSound} onValueChange={setAmbientSound} disabled={!audioUploaded || isProcessing}>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value={option.id} id={option.id} className="sr-only" />
                         <Label 
                           htmlFor={option.id} 
-                          className={`flex flex-col items-center justify-center p-3 rounded-lg cursor-pointer transition-all duration-200 h-24
+                          className={`flex flex-col items-center justify-center p-3 rounded-lg cursor-pointer transition-all duration-200 h-28
                             ${ambientSound === option.id 
                               ? 'bg-lofi-purple/30 text-lofi-purple border-lofi-purple shadow-md scale-105' 
-                              : 'bg-secondary hover:bg-secondary/80 hover:text-lofi-purple hover:scale-105'
+                              : 'bg-secondary hover:bg-lofi-purple/20 hover:text-lofi-purple hover:scale-105'
                             }`}
                         >
-                          <div className={`p-2 rounded-full ${ambientSound === option.id ? 'bg-lofi-purple/20' : 'bg-lofi-black/30'}`}>
+                          <div className={`p-3 rounded-full ${ambientSound === option.id ? 'bg-lofi-purple/20' : 'bg-lofi-black/30'}`}>
                             {option.icon}
                           </div>
-                          <span className="mt-2 font-bangers tracking-wide text-lg">{option.label}</span>
+                          <span className="mt-2 font-bangers tracking-wide text-xl">{option.label}</span>
                         </Label>
                       </div>
                     </RadioGroup>
@@ -157,7 +184,7 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({ onApplyEffects, isProcessin
         <Button 
           onClick={handleApply} 
           disabled={!audioUploaded || isProcessing}
-          className="w-full mt-6 text-xl font-bangers tracking-wide h-14 bg-lofi-purple hover:bg-lofi-purple/80"
+          className="w-full mt-8 text-2xl font-bangers tracking-wide h-16 bg-lofi-purple hover:bg-lofi-purple/80"
         >
           {isProcessing ? 'Processing...' : 'Apply Lofi Effects'}
         </Button>
