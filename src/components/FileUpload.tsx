@@ -100,7 +100,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected, isProcessed }) 
       
       {uploadProgress !== null ? (
         <div className="w-full max-w-xs">
-          <p className="text-center mb-2 text-sm">Uploading...</p>
+          <p className="text-center mb-2 text-sm font-bangers tracking-wide">Uploading...</p>
           <Progress value={uploadProgress} className="h-2 bg-lofi-card" />
         </div>
       ) : selectedFile && !isProcessed ? (
@@ -108,7 +108,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected, isProcessed }) 
           <div className="mb-3 bg-lofi-card/80 p-3 rounded-full inline-flex">
             {getFileIcon()}
           </div>
-          <p className="font-medium mb-1 text-lofi-purple">{selectedFile.name}</p>
+          <p className="font-bangers mb-1 text-xl text-lofi-purple tracking-wide">{selectedFile.name}</p>
           <p className="text-xs text-muted-foreground">
             {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB · Ready to transform
           </p>
@@ -122,14 +122,14 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected, isProcessed }) 
               <Music className="h-8 w-8 text-lofi-purple/70" />
             )}
           </div>
-          <p className="text-center mb-1 font-medium text-lofi-purple font-bangers tracking-wider text-lg">
+          <p className="text-center mb-1 font-medium text-lofi-purple font-bangers tracking-wider text-xl">
             {isDragActive ? 'Drop to upload' : 'Drag and drop your audio'}
           </p>
           <p className="text-xs text-muted-foreground mb-3">MP3, WAV, OGG or MP4 video</p>
           <Button 
             variant="outline" 
             size="sm" 
-            className="text-xs bg-lofi-card border-lofi-purple/30 hover:bg-lofi-hover"
+            className="text-xs bg-lofi-card border-lofi-purple/30 hover:bg-lofi-hover font-bangers tracking-wide"
             disabled={isProcessed}
           >
             Browse files

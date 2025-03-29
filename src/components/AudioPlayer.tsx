@@ -115,7 +115,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
   if (!audioUrl) {
     return (
       <div className="w-full h-24 bg-secondary/50 rounded-xl flex items-center justify-center">
-        <p className="text-muted-foreground text-sm">Upload a track to begin</p>
+        <p className="text-muted-foreground text-base font-bangers tracking-wide">Upload a track to begin</p>
       </div>
     );
   }
@@ -138,8 +138,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
         
         <div className="flex-grow">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-muted-foreground">{formatTime(currentTime)}</span>
-            <span className="text-xs text-muted-foreground">{formatTime(duration)}</span>
+            <span className="text-xs text-muted-foreground font-bangers">{formatTime(currentTime)}</span>
+            <span className="text-xs text-muted-foreground font-bangers">{formatTime(duration)}</span>
           </div>
           <Slider
             min={0}
@@ -166,6 +166,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
             onValueChange={(val) => setVolume(val[0])}
             className="w-24 ml-2"
           />
+          <span className="text-xs ml-2 font-bangers tracking-wide">Track</span>
         </div>
         
         <div className="flex items-center">
@@ -178,6 +179,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, isProcessed, ambien
             onValueChange={(val) => setAmbientVolume(val[0])}
             className="w-24 ml-2"
           />
+          <span className="text-xs ml-2 font-bangers tracking-wide">Ambient</span>
         </div>
       </div>
     </div>
