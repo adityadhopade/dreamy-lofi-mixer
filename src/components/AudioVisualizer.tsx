@@ -116,9 +116,9 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ isPlaying, audioProce
   return (
     <canvas 
       ref={canvasRef} 
-      className="w-full h-16 rounded-md"
+      className="w-full h-20 rounded-md"
       width={400}
-      height={60}
+      height={80}
     />
   );
 };

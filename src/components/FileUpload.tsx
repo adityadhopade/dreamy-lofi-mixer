@@ -108,8 +108,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected, isProcessed }) 
           <div className="mb-3 bg-lofi-card/80 p-3 rounded-full inline-flex">
             {getFileIcon()}
           </div>
-          <p className="font-bangers mb-1 text-xl text-lofi-purple tracking-wide">{selectedFile.name}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="font-bangers mb-1 text-2xl text-lofi-purple tracking-wide">{selectedFile.name}</p>
+          <p className="text-sm text-muted-foreground">
             {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB · Ready to transform
           </p>
         </div>
@@ -122,14 +122,14 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected, isProcessed }) 
               <Music className="h-8 w-8 text-lofi-purple/70" />
             )}
           </div>
-          <p className="text-center mb-1 font-medium text-lofi-purple font-bangers tracking-wider text-xl">
+          <p className="text-center mb-1 font-medium text-lofi-purple font-bangers tracking-wider text-2xl">
             {isDragActive ? 'Drop to upload' : 'Drag and drop your audio'}
           </p>
-          <p className="text-xs text-muted-foreground mb-3">MP3, WAV, OGG or MP4 video</p>
+          <p className="text-lg text-muted-foreground mb-3 font-bangers tracking-wide">MP3, WAV, OGG or MP4 video</p>
           <Button 
             variant="outline" 
-            size="sm" 
-            className="text-xs bg-lofi-card border-lofi-purple/30 hover:bg-lofi-hover font-bangers tracking-wide"
+            size="lg" 
+            className="text-lg bg-lofi-card border-lofi-purple/30 hover:bg-lofi-hover font-bangers tracking-wide"
             disabled={isProcessed}
           >
             Browse files
