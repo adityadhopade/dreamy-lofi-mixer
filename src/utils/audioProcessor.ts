@@ -1,3 +1,4 @@
+
 // This is a more complete audio processing utility using Web Audio API
 export class AudioProcessor {
   private context: AudioContext;
@@ -14,6 +15,8 @@ export class AudioProcessor {
   private ambientBuffer: AudioBuffer | null = null;
   private processingReady = false;
   private playing = false;
+  private startTime = 0;
+  private pauseTime = 0;
   private effectsSettings: { slowdown: number; reverb: number; lowpass: number } | null = null;
   private visualDataArray: Uint8Array | null = null;
 
@@ -133,8 +136,11 @@ export class AudioProcessor {
   }
 
   play(startTime: number = 0): void {
-    if (this.playing || !this.audioBuffer) return;
-    this.stopAll();
+    if (this.playing) {
+      this.pause();
+    }
+    
+    if (!this.audioBuffer) return;
     
     // Create a new source node (they can only be used once)
     this.sourceNode = this.context.createBufferSource();
@@ -183,7 +189,9 @@ export class AudioProcessor {
       this.gainNode.connect(this.context.destination);
     }
     
-    // Play the source from the specified position
+    // Calculate the correct offset for playback
+    this.startTime = this.context.currentTime - startTime;
+    // Start the source from the specified position
     this.sourceNode.start(0, startTime);
     
     // Play ambient sound if available
@@ -209,6 +217,9 @@ export class AudioProcessor {
   }
 
   pause(): void {
+    if (!this.playing) return;
+    
+    this.pauseTime = this.getCurrentTime();
     this.stopAll();
     this.playing = false;
   }
@@ -238,11 +249,29 @@ export class AudioProcessor {
   }
 
   getCurrentTime(): number {
-    return this.context.currentTime;
+    if (!this.playing) {
+      return this.pauseTime;
+    }
+    return this.context.currentTime - this.startTime;
   }
 
   isPlaying(): boolean {
     return this.playing;
+  }
+
+  seekTo(time: number): void {
+    const wasPlaying = this.playing;
+    
+    // Stop current playback
+    this.pause();
+    
+    // Update pauseTime to new position
+    this.pauseTime = time;
+    
+    // If it was playing, restart playback from the new position
+    if (wasPlaying) {
+      this.play(time);
+    }
   }
 
   async createProcessedAudioBlob(): Promise<Blob | null> {
@@ -314,8 +343,10 @@ export class AudioProcessor {
       mainGain.connect(offlineCtx.destination);
       
       // Add ambient sound if available
+      let ambientSource = null;
+      
       if (this.ambientBuffer) {
-        const ambientSource = offlineCtx.createBufferSource();
+        ambientSource = offlineCtx.createBufferSource();
         ambientSource.buffer = this.ambientBuffer;
         
         // Calculate ambient duration needed to cover the entire processed audio
@@ -333,13 +364,15 @@ export class AudioProcessor {
         
         ambientSource.connect(ambientGain);
         ambientGain.connect(offlineCtx.destination);
-        
-        // Start the ambient source
-        ambientSource.start();
       }
       
       // Start main source
       source.start();
+      
+      // Start ambient if available
+      if (ambientSource) {
+        ambientSource.start();
+      }
       
       // Render audio
       const renderedBuffer = await offlineCtx.startRendering();

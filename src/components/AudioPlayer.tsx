@@ -29,7 +29,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ambientRef = useRef<HTMLAudioElement | null>(null);
   const progressAnimationRef = useRef<number | null>(null);
-  const wasPlayingBeforeSeek = useRef<boolean>(false);
+  const isDraggingRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!audioUrl) return;
@@ -46,7 +46,9 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     });
     
     audio.addEventListener('timeupdate', () => {
-      setCurrentTime(audio.currentTime);
+      if (!isDraggingRef.current) {
+        setCurrentTime(audio.currentTime);
+      }
     });
     
     audio.addEventListener('ended', () => {
@@ -55,7 +57,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     });
     
     // Set default volume to 25%
-    audio.volume = 0.25;
+    audio.volume = volume;
     
     return () => {
       audio.pause();
@@ -134,9 +136,13 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     if (!isPlaying || !audioProcessor) return;
     
     const updateTime = () => {
-      // Get time from processor if available, otherwise increment manually
-      const newTime = audioProcessor.getCurrentTime ? audioProcessor.getCurrentTime() : currentTime + 0.05;
-      setCurrentTime(newTime);
+      // Get time from processor
+      const newTime = audioProcessor.getCurrentTime();
+      
+      // Only update if we're not dragging
+      if (!isDraggingRef.current) {
+        setCurrentTime(newTime);
+      }
       
       // Check if we've reached the end of the audio
       if (newTime >= duration) {
@@ -175,52 +181,27 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const handleTimeChange = (value: number[]) => {
     const newTime = value[0];
+    setCurrentTime(newTime);
+  };
+
+  const handleSliderPointerDown = () => {
+    isDraggingRef.current = true;
+  };
+
+  const handleSliderPointerUp = (value: number[]) => {
+    isDraggingRef.current = false;
+    const newTime = value[0];
     
-    // Stop the animation frame to prevent conflicts
-    if (progressAnimationRef.current) {
-      cancelAnimationFrame(progressAnimationRef.current);
-      progressAnimationRef.current = null;
-    }
-    
-    // Update the time state
+    // Update both the UI and the actual playback position
     setCurrentTime(newTime);
     
     if (audioProcessor && isProcessed) {
       audioProcessor.seekTo(newTime);
       
-      // If it was playing before seeking, resume playback from new position
-      if (isPlaying) {
-        updateProgressForProcessor();
-      }
+      // If it was already playing, it will continue from the new position 
+      // thanks to the seekTo implementation
     } else if (audioRef.current) {
       audioRef.current.currentTime = newTime;
-    }
-  };
-
-  const handleSliderPointerDown = () => {
-    // Store playing state before seek
-    wasPlayingBeforeSeek.current = isPlaying;
-    
-    // Pause while seeking
-    if (isPlaying) {
-      if (audioProcessor && isProcessed) {
-        audioProcessor.pause();
-      } else if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      // Don't change the isPlaying state yet
-    }
-  };
-
-  const handleSliderPointerUp = () => {
-    // Resume if it was playing before
-    if (wasPlayingBeforeSeek.current) {
-      if (audioProcessor && isProcessed) {
-        audioProcessor.play(currentTime);
-        // The updateProgressForProcessor will be called via the isPlaying effect
-      } else if (audioRef.current) {
-        audioRef.current.play().catch(err => console.error("Error resuming audio:", err));
-      }
     }
   };
 

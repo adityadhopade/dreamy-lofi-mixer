@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Cloud, Music, FileAudio, FileVideo } from 'lucide-react';
+import { Cloud, FileAudio, FileVideo } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
@@ -121,7 +121,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected, isProcessed }) 
             {isDragActive ? (
               <Cloud className="h-8 w-8 text-lofi-purple animate-pulse" />
             ) : (
-              <Music className="h-8 w-8 text-lofi-purple/70" />
+              <Cloud className="h-8 w-8 text-lofi-purple/70" />
             )}
           </div>
           <p className="text-center mb-1 font-medium text-lofi-purple font-bangers tracking-wider text-3xl">
