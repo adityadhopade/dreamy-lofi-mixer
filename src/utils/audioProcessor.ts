@@ -433,4 +433,19 @@ export class AudioProcessor {
       view.setUint8(offset + i, string.charCodeAt(i));
     }
   }
+
+  seekTo(time: number): void {
+    if (this.playing) {
+      // Stop the current playback
+      this.pause();
+      // Start from the new position
+      this.play(time);
+    } else {
+      // Just update the position without playing
+      if (this.sourceNode) {
+        this.sourceNode.stop();
+        this.sourceNode = null;
+      }
+    }
+  }
 }

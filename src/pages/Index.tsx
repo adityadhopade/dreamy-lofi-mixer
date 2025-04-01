@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import FileUpload from '@/components/FileUpload';
 import AudioPlayer from '@/components/AudioPlayer';
@@ -8,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AudioProcessor } from '@/utils/audioProcessor';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
 
 const Index = () => {
@@ -21,10 +22,11 @@ const Index = () => {
   const audioProcessorRef = useRef<AudioProcessor | null>(null);
 
   useEffect(() => {
+    // This toast notification will show when the page first loads
     toast({
-      title: "One Upload at a Time",
       description: "Currently, only one audio file can be processed at a time. To upload a new track, please refresh the page.",
       duration: 8000,
+      className: "bg-lofi-card/90 border-lofi-purple/30 backdrop-blur-sm text-foreground",
     });
   }, []);
 
@@ -42,13 +44,14 @@ const Index = () => {
       toast({
         title: "Error loading audio",
         description: "There was a problem loading your audio file.",
-        variant: "destructive"
+        variant: "destructive",
+        className: "bg-red-900/80 backdrop-blur-sm border-red-600"
       });
     });
     
     toast({
-      title: "File uploaded successfully",
       description: `${file.name} is ready to be transformed into lofi.`,
+      className: "bg-lofi-card/90 border-lofi-purple/30 backdrop-blur-sm text-foreground",
     });
   };
 
@@ -60,7 +63,8 @@ const Index = () => {
       toast({
         title: "Error processing audio",
         description: "Audio processor not initialized. Try uploading your file again.",
-        variant: "destructive"
+        variant: "destructive",
+        className: "bg-red-900/80 backdrop-blur-sm border-red-600"
       });
       setIsProcessing(false);
       return;
@@ -78,13 +82,19 @@ const Index = () => {
       }
       setAmbientSoundUrl(ambientUrl);
       
+      // Show a toast while processing
+      toast({
+        description: "Processing your track with lofi effects...",
+        className: "bg-lofi-card/90 border-lofi-purple/30 backdrop-blur-sm text-foreground",
+      });
+      
       setTimeout(() => {
         setIsProcessing(false);
         setIsProcessed(true);
         
         toast({
-          title: "Lofi transformation complete!",
           description: "Your track has been transformed with lofi effects. Hit play to listen or download your creation.",
+          className: "bg-lofi-card/90 border-lofi-purple/30 backdrop-blur-sm text-foreground",
         });
       }, 1500);
     } catch (error) {
@@ -94,7 +104,8 @@ const Index = () => {
       toast({
         title: "Error processing audio",
         description: "There was a problem applying the lofi effects.",
-        variant: "destructive"
+        variant: "destructive",
+        className: "bg-red-900/80 backdrop-blur-sm border-red-600"
       });
     }
   };
@@ -104,15 +115,16 @@ const Index = () => {
       toast({
         title: "Cannot download",
         description: "Please upload a file and apply lofi effects first.",
-        variant: "destructive"
+        variant: "destructive",
+        className: "bg-red-900/80 backdrop-blur-sm border-red-600"
       });
       return;
     }
     
     try {
       toast({
-        title: "Preparing download",
         description: "We're processing your lofi track. This may take a moment...",
+        className: "bg-lofi-card/90 border-lofi-purple/30 backdrop-blur-sm text-foreground",
       });
       
       const blob = await audioProcessorRef.current.createProcessedAudioBlob();
@@ -138,35 +150,18 @@ const Index = () => {
       }, 100);
       
       toast({
-        title: "Download started",
         description: "Your lofi track is being downloaded.",
+        className: "bg-lofi-card/90 border-lofi-purple/30 backdrop-blur-sm text-foreground",
       });
     } catch (error) {
       console.error("Error downloading file:", error);
       toast({
         title: "Download failed",
         description: "There was a problem creating your lofi download.",
-        variant: "destructive"
+        variant: "destructive",
+        className: "bg-red-900/80 backdrop-blur-sm border-red-600"
       });
     }
-  };
-
-  const handleReset = () => {
-    if (audioProcessorRef.current) {
-      audioProcessorRef.current = null;
-    }
-    
-    setUploadedFile(null);
-    setAudioUrl(null);
-    setIsProcessed(false);
-    setIsProcessing(false);
-    setAmbientSoundUrl(null);
-    setCurrentEffects(null);
-    
-    toast({
-      title: "Reset complete",
-      description: "You can now upload a new audio file.",
-    });
   };
 
   return (
@@ -188,9 +183,9 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto flex-1 px-4 py-8 max-w-5xl">
-        <Alert className="mb-8 bg-lofi-card/80 border-lofi-purple/30">
+        <Alert variant="lofi" className="mb-8 backdrop-blur-lg">
           <InfoIcon className="h-5 w-5 text-lofi-purple" />
-          <AlertDescription className="text-xl">
+          <AlertDescription className="text-xl font-medium">
             Currently, only one audio file can be processed at a time. To upload a new track, please refresh the page.
           </AlertDescription>
         </Alert>
@@ -228,7 +223,7 @@ const Index = () => {
                       Lofi Version
                     </h3>
                   </div>
-                  <div className="transform transition-all duration-300 hover:scale-[1.01] min-h-[340px]">
+                  <div className="transform transition-all duration-300 hover:scale-[1.01] min-h-[400px]">
                     <AudioPlayer 
                       audioUrl={audioUrl} 
                       isProcessed={isProcessed}

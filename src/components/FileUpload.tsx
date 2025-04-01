@@ -21,7 +21,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected, isProcessed }) 
       toast({
         title: "Reset required",
         description: "Please reset the current session before uploading a new file.",
-        variant: "destructive"
+        variant: "destructive",
+        className: "bg-red-900/80 backdrop-blur-sm border-red-600"
       });
       return;
     }
@@ -36,7 +37,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected, isProcessed }) 
       toast({
         title: "Invalid file type",
         description: "Please upload an audio file (MP3, WAV, OGG) or MP4 video.",
-        variant: "destructive"
+        variant: "destructive",
+        className: "bg-red-900/80 backdrop-blur-sm border-red-600"
       });
       return;
     }
@@ -122,14 +124,14 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelected, isProcessed }) 
               <Music className="h-8 w-8 text-lofi-purple/70" />
             )}
           </div>
-          <p className="text-center mb-1 font-medium text-lofi-purple font-bangers tracking-wider text-2xl">
+          <p className="text-center mb-1 font-medium text-lofi-purple font-bangers tracking-wider text-3xl">
             {isDragActive ? 'Drop to upload' : 'Drag and drop your audio'}
           </p>
-          <p className="text-lg text-muted-foreground mb-3 font-bangers tracking-wide">MP3, WAV, OGG or MP4 video</p>
+          <p className="text-xl text-muted-foreground mb-4 font-bangers tracking-wide">MP3, WAV, OGG or MP4 video</p>
           <Button 
             variant="outline" 
             size="lg" 
-            className="text-lg bg-lofi-card border-lofi-purple/30 hover:bg-lofi-hover font-bangers tracking-wide"
+            className="text-xl bg-lofi-card border-lofi-purple/30 hover:bg-lofi-hover font-bangers tracking-wide py-6 px-8"
             disabled={isProcessed}
           >
             Browse files

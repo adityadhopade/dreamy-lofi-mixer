@@ -24,7 +24,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(0.8);
+  const [volume, setVolume] = useState(0.25); // Default to 25%
   const [ambientVolume, setAmbientVolume] = useState(0.3);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ambientRef = useRef<HTMLAudioElement | null>(null);
@@ -52,6 +52,9 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
       setIsPlaying(false);
       setCurrentTime(0);
     });
+    
+    // Set default volume to 25%
+    audio.volume = 0.25;
     
     return () => {
       audio.pause();
@@ -175,9 +178,9 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     
     if (audioProcessor && isProcessed) {
       audioProcessor.seekTo?.(newTime);
+      // Don't restart playback if we're just seeking
       if (isPlaying) {
-        audioProcessor.pause();
-        audioProcessor.play(newTime);
+        audioProcessor.seekTo(newTime);
       }
     } else if (audioRef.current) {
       audioRef.current.currentTime = newTime;
@@ -254,7 +257,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
             step={0.01}
             value={[currentTime]}
             onValueChange={handleTimeChange}
-            className="my-1 h-3"
+            className="my-1 h-3 cursor-pointer"
           />
           
           <AudioVisualizer isPlaying={isPlaying} audioProcessor={audioProcessor} />
