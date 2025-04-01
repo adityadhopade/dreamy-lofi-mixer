@@ -12,7 +12,7 @@ const alertVariants = cva(
         default: "bg-background text-foreground",
         destructive:
           "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
-        lofi: "bg-lofi-card/80 border-lofi-purple/30 text-foreground backdrop-blur-sm shadow-md",
+        lofi: "bg-lofi-card/50 border-lofi-purple/20 text-foreground backdrop-blur-md shadow-lg",
       },
     },
     defaultVariants: {

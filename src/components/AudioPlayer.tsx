@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Volume2, Volume1, VolumeX, Play, Pause, Disc, Download } from 'lucide-react';
+import { Volume2, Volume1, VolumeX, Play, Pause, Disc } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import AudioVisualizer from './AudioVisualizer';
@@ -29,6 +29,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ambientRef = useRef<HTMLAudioElement | null>(null);
   const progressAnimationRef = useRef<number | null>(null);
+  const wasPlayingBeforeSeek = useRef<boolean>(false);
 
   useEffect(() => {
     if (!audioUrl) return;
@@ -174,16 +175,52 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const handleTimeChange = (value: number[]) => {
     const newTime = value[0];
+    
+    // Stop the animation frame to prevent conflicts
+    if (progressAnimationRef.current) {
+      cancelAnimationFrame(progressAnimationRef.current);
+      progressAnimationRef.current = null;
+    }
+    
+    // Update the time state
     setCurrentTime(newTime);
     
     if (audioProcessor && isProcessed) {
-      audioProcessor.seekTo?.(newTime);
-      // Don't restart playback if we're just seeking
+      audioProcessor.seekTo(newTime);
+      
+      // If it was playing before seeking, resume playback from new position
       if (isPlaying) {
-        audioProcessor.seekTo(newTime);
+        updateProgressForProcessor();
       }
     } else if (audioRef.current) {
       audioRef.current.currentTime = newTime;
+    }
+  };
+
+  const handleSliderPointerDown = () => {
+    // Store playing state before seek
+    wasPlayingBeforeSeek.current = isPlaying;
+    
+    // Pause while seeking
+    if (isPlaying) {
+      if (audioProcessor && isProcessed) {
+        audioProcessor.pause();
+      } else if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      // Don't change the isPlaying state yet
+    }
+  };
+
+  const handleSliderPointerUp = () => {
+    // Resume if it was playing before
+    if (wasPlayingBeforeSeek.current) {
+      if (audioProcessor && isProcessed) {
+        audioProcessor.play(currentTime);
+        // The updateProgressForProcessor will be called via the isPlaying effect
+      } else if (audioRef.current) {
+        audioRef.current.play().catch(err => console.error("Error resuming audio:", err));
+      }
     }
   };
 
@@ -257,6 +294,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
             step={0.01}
             value={[currentTime]}
             onValueChange={handleTimeChange}
+            onPointerDown={handleSliderPointerDown}
+            onPointerUp={handleSliderPointerUp}
             className="my-1 h-3 cursor-pointer"
           />
           
@@ -301,7 +340,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
             size="lg"
             className="bg-lofi-purple/20 hover:bg-lofi-purple/30 border-lofi-purple/30 text-lofi-purple font-bangers tracking-wide text-lg"
           >
-            <Download className="w-5 h-5 mr-2" /> Download Lofi Track
+            Download Lofi Track
           </Button>
         </div>
       )}

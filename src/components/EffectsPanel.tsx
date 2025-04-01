@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
@@ -85,7 +84,7 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({ onApplyEffects, isProcessin
               className="h-3"
             />
           </div>
-          <p className="text-lg text-muted-foreground mt-2">
+          <p className="text-xl text-muted-foreground mt-2">
             Slows down the track for that classic lofi vibe. Lower values create a more dreamlike sound.
           </p>
         </div>
@@ -110,7 +109,7 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({ onApplyEffects, isProcessin
               className="h-3"
             />
           </div>
-          <p className="text-lg text-muted-foreground mt-2">
+          <p className="text-xl text-muted-foreground mt-2">
             Adds spaciousness and atmosphere to the track. Higher values create a more distant, dreamy sound.
           </p>
         </div>
@@ -135,7 +134,7 @@ const EffectsPanel: React.FC<EffectsPanelProps> = ({ onApplyEffects, isProcessin
               className="h-3"
             />
           </div>
-          <p className="text-lg text-muted-foreground mt-2">
+          <p className="text-xl text-muted-foreground mt-2">
             Removes high frequencies for the warm, cozy lofi sound. Higher values create a more "underwater" effect.
           </p>
         </div>

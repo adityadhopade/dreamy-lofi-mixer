@@ -248,78 +248,113 @@ export class AudioProcessor {
   async createProcessedAudioBlob(): Promise<Blob | null> {
     if (!this.audioBuffer || !this.effectsSettings) return null;
 
-    // Create an offline audio context for rendering
-    const offlineCtx = new OfflineAudioContext(
-      this.audioBuffer.numberOfChannels,
-      this.audioBuffer.length * (100 / this.effectsSettings.slowdown), // Adjust length based on slowdown
-      this.audioBuffer.sampleRate
-    );
+    try {
+      // Create an offline audio context for rendering
+      const offlineCtx = new OfflineAudioContext(
+        this.audioBuffer.numberOfChannels,
+        this.audioBuffer.length * (100 / this.effectsSettings.slowdown), // Adjust length based on slowdown
+        this.audioBuffer.sampleRate
+      );
 
-    // Create and connect nodes in the offline context
-    const source = offlineCtx.createBufferSource();
-    source.buffer = this.audioBuffer;
-    
-    // Apply playback rate (slowdown)
-    source.playbackRate.value = this.effectsSettings.slowdown / 100;
-    
-    // Create filter nodes
-    const lowpassFilter = offlineCtx.createBiquadFilter();
-    lowpassFilter.type = 'lowpass';
-    const filterValue = 100 - this.effectsSettings.lowpass;
-    const mappedFrequency = 100 + (20000 - 100) * (filterValue / 100);
-    lowpassFilter.frequency.value = mappedFrequency;
-    lowpassFilter.Q.value = 1 + (this.effectsSettings.lowpass / 100) * 5;
-    
-    const highpassFilter = offlineCtx.createBiquadFilter();
-    highpassFilter.type = 'highpass';
-    highpassFilter.frequency.value = 20 + (this.effectsSettings.lowpass / 100) * 200;
-    
-    // Create compressor
-    const compressor = offlineCtx.createDynamicsCompressor();
-    compressor.threshold.value = -24;
-    compressor.knee.value = 30;
-    compressor.ratio.value = 12;
-    compressor.attack.value = 0.003;
-    compressor.release.value = 0.25;
-    
-    // Create reverb
-    const reverbNode = offlineCtx.createConvolver();
-    const reverbImpulse = await this.createOfflineReverb(offlineCtx);
-    reverbNode.buffer = reverbImpulse;
-    
-    // Create dry/wet mix for reverb
-    const dryGain = offlineCtx.createGain();
-    const wetGain = offlineCtx.createGain();
-    dryGain.gain.value = 1 - (this.effectsSettings.reverb / 100);
-    wetGain.gain.value = this.effectsSettings.reverb / 100 * 0.6;
-    
-    // Connect nodes in the correct order for lofi effect chain
-    source.connect(highpassFilter);
-    highpassFilter.connect(lowpassFilter);
-    lowpassFilter.connect(compressor);
-    
-    // Dry path (no reverb)
-    compressor.connect(dryGain);
-    dryGain.connect(offlineCtx.destination);
-    
-    // Wet path (with reverb)
-    compressor.connect(reverbNode);
-    reverbNode.connect(wetGain);
-    wetGain.connect(offlineCtx.destination);
-    
-    // Start source
-    source.start();
-    
-    // Render audio
-    const renderedBuffer = await offlineCtx.startRendering();
-    
-    // Add bit-crushing effect (simulate lower sample rate and bit depth)
-    const bitCrushedBuffer = this.applyBitCrushing(renderedBuffer, this.effectsSettings.lowpass / 100);
-    
-    // Convert to wav
-    const wavBlob = this.audioBufferToWav(bitCrushedBuffer);
-    
-    return wavBlob;
+      // Create and connect nodes in the offline context
+      const source = offlineCtx.createBufferSource();
+      source.buffer = this.audioBuffer;
+      
+      // Apply playback rate (slowdown)
+      source.playbackRate.value = this.effectsSettings.slowdown / 100;
+      
+      // Create filter nodes
+      const lowpassFilter = offlineCtx.createBiquadFilter();
+      lowpassFilter.type = 'lowpass';
+      const filterValue = 100 - this.effectsSettings.lowpass;
+      const mappedFrequency = 100 + (20000 - 100) * (filterValue / 100);
+      lowpassFilter.frequency.value = mappedFrequency;
+      lowpassFilter.Q.value = 1 + (this.effectsSettings.lowpass / 100) * 5;
+      
+      const highpassFilter = offlineCtx.createBiquadFilter();
+      highpassFilter.type = 'highpass';
+      highpassFilter.frequency.value = 20 + (this.effectsSettings.lowpass / 100) * 200;
+      
+      // Create compressor
+      const compressor = offlineCtx.createDynamicsCompressor();
+      compressor.threshold.value = -24;
+      compressor.knee.value = 30;
+      compressor.ratio.value = 12;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.25;
+      
+      // Create reverb
+      const reverbNode = offlineCtx.createConvolver();
+      const reverbImpulse = await this.createOfflineReverb(offlineCtx);
+      reverbNode.buffer = reverbImpulse;
+
+      // Create gain nodes for mixing
+      const mainGain = offlineCtx.createGain();
+      mainGain.gain.value = 0.8; // Slightly reduce main track volume to make room for ambient
+
+      // Create dry/wet mix for reverb
+      const dryGain = offlineCtx.createGain();
+      const wetGain = offlineCtx.createGain();
+      dryGain.gain.value = 1 - (this.effectsSettings.reverb / 100);
+      wetGain.gain.value = this.effectsSettings.reverb / 100 * 0.6;
+      
+      // Connect nodes in the correct order for lofi effect chain
+      source.connect(highpassFilter);
+      highpassFilter.connect(lowpassFilter);
+      lowpassFilter.connect(compressor);
+      
+      // Dry path (no reverb)
+      compressor.connect(dryGain);
+      dryGain.connect(mainGain);
+      
+      // Wet path (with reverb)
+      compressor.connect(reverbNode);
+      reverbNode.connect(wetGain);
+      wetGain.connect(mainGain);
+      mainGain.connect(offlineCtx.destination);
+      
+      // Add ambient sound if available
+      if (this.ambientBuffer) {
+        const ambientSource = offlineCtx.createBufferSource();
+        ambientSource.buffer = this.ambientBuffer;
+        
+        // Calculate ambient duration needed to cover the entire processed audio
+        const mainAudioDuration = this.audioBuffer.duration * (100 / this.effectsSettings.slowdown);
+        
+        // We might need to loop the ambient sound if it's shorter than the main audio
+        if (this.ambientBuffer.duration < mainAudioDuration) {
+          ambientSource.loop = true;
+          ambientSource.loopEnd = this.ambientBuffer.duration;
+        }
+        
+        // Add gain node to control ambient volume
+        const ambientGain = offlineCtx.createGain();
+        ambientGain.gain.value = 0.3; // Use ambient volume value
+        
+        ambientSource.connect(ambientGain);
+        ambientGain.connect(offlineCtx.destination);
+        
+        // Start the ambient source
+        ambientSource.start();
+      }
+      
+      // Start main source
+      source.start();
+      
+      // Render audio
+      const renderedBuffer = await offlineCtx.startRendering();
+      
+      // Add bit-crushing effect (simulate lower sample rate and bit depth)
+      const bitCrushedBuffer = this.applyBitCrushing(renderedBuffer, this.effectsSettings.lowpass / 100);
+      
+      // Convert to wav
+      const wavBlob = this.audioBufferToWav(bitCrushedBuffer);
+      
+      return wavBlob;
+    } catch (error) {
+      console.error("Error creating processed audio blob:", error);
+      return null;
+    }
   }
   
   private applyBitCrushing(buffer: AudioBuffer, intensity: number): AudioBuffer {
@@ -440,12 +475,6 @@ export class AudioProcessor {
       this.pause();
       // Start from the new position
       this.play(time);
-    } else {
-      // Just update the position without playing
-      if (this.sourceNode) {
-        this.sourceNode.stop();
-        this.sourceNode = null;
-      }
     }
   }
 }
