@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Volume2, Volume1, VolumeX, Play, Pause, Disc } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
@@ -131,7 +130,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     setIsPlaying(!isPlaying);
   };
 
-  // Update progress continuously when using audioProcessor
   const updateProgressForProcessor = () => {
     if (!isPlaying || !audioProcessor) return;
     
@@ -188,13 +186,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     isDraggingRef.current = true;
   };
 
-  const handleSliderPointerUp = (value: number[]) => {
+  // Fix the type error by updating the signature to use React.PointerEvent
+  const handleSliderPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
     isDraggingRef.current = false;
-    const newTime = value[0];
+    
+    // Get the current value from state since we can't get it from the event
+    const newTime = currentTime;
     
     // Update both the UI and the actual playback position
-    setCurrentTime(newTime);
-    
     if (audioProcessor && isProcessed) {
       audioProcessor.seekTo(newTime);
       

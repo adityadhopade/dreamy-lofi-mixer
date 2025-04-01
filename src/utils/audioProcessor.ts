@@ -1,4 +1,3 @@
-
 // This is a more complete audio processing utility using Web Audio API
 export class AudioProcessor {
   private context: AudioContext;
@@ -499,15 +498,6 @@ export class AudioProcessor {
   private writeString(view: DataView, offset: number, string: string): void {
     for (let i = 0; i < string.length; i++) {
       view.setUint8(offset + i, string.charCodeAt(i));
-    }
-  }
-
-  seekTo(time: number): void {
-    if (this.playing) {
-      // Stop the current playback
-      this.pause();
-      // Start from the new position
-      this.play(time);
     }
   }
 }
